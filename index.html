@@ -1,0 +1,1573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crew leave tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 216 216'%3E%3Crect width='216' height='216' fill='%2315385A'/%3E%3Cg stroke='%23C9A227' stroke-width='7.2' stroke-linecap='round' fill='none'%3E%3Cpath d='M28.8 28.8L108 108M187.2 28.8L108 108M187.2 187.2L108 108M28.8 187.2L108 108'/%3E%3Ccircle cx='108' cy='108' r='13.2' fill='%2315385A'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#15385A; --navy-2:#24578A;
+  --bg:#EDF1F6; --surface:#FFFFFF; --ink:#0F2740; --ink2:#506680; --line:#D5DDE7; --soft:#E6EDF5;
+  --hero:#15385A; --hero-ink:#FFFFFF; --meter:#15385A; --meter-p:#8FB0D3;
+  --warn:#7A4A00; --warn-bg:#FFF3DC; --bad:#B3261E; --bad-bg:#FDECEA; --good:#1B6E48; --good-bg:#E6F4EC;
+  --head-font:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --body-font:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1A2D; --surface:#102A45; --ink:#EAF1F8; --ink2:#9FB3C8; --line:#26496F; --soft:#183A5E;
+    --hero:#1D4872; --meter:#6AA9E8; --meter-p:#2F5F93;
+    --warn:#F2C879; --warn-bg:#3A2D12; --bad:#F5A39E; --bad-bg:#3E1B1A; --good:#8FD8B0; --good-bg:#123826;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1A2D; --surface:#102A45; --ink:#EAF1F8; --ink2:#9FB3C8; --line:#26496F; --soft:#183A5E;
+  --hero:#1D4872; --meter:#6AA9E8; --meter-p:#2F5F93;
+  --warn:#F2C879; --warn-bg:#3A2D12; --bad:#F5A39E; --bad-bg:#3E1B1A; --good:#8FD8B0; --good-bg:#123826;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--body-font);-webkit-text-size-adjust:100%;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--navy);z-index:10}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy-2);outline-offset:2px}
+.top :focus-visible{outline-color:#fff}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 22px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand svg{width:42px;height:42px;border-radius:9px;box-shadow:0 0 0 1.5px rgba(255,255,255,.38);flex:none;display:block}
+.brand b{display:block;font:600 22px/1 var(--head-font);letter-spacing:.01em;white-space:nowrap}
+.brand small{display:block;color:rgba(255,255,255,.72);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.tabs{display:flex;gap:4px;margin-left:10px}
+.tab{appearance:none;border:0;background:transparent;color:rgba(255,255,255,.8);font:500 15px var(--body-font);padding:9px 14px;border-radius:8px;display:flex;gap:8px;align-items:center;cursor:pointer}
+.tab:hover{background:rgba(255,255,255,.1);color:#fff}
+.tab[aria-current="page"]{background:#fff;color:var(--navy)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.status{appearance:none;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:5px 12px;font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}
+.status i{width:8px;height:8px;border-radius:50%;background:#7FD3A2;flex:none}
+.status.amber i{background:#F2B84B}
+.status.red i{background:#F28B82}
+.iconbtn{appearance:none;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;width:36px;height:36px;border-radius:9px;display:grid;place-items:center;cursor:pointer}
+.iconbtn:hover{background:rgba(255,255,255,.12)}
+.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+main{max-width:1200px;margin:0 auto;padding:22px 22px 70px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1.pt{font:600 36px/1.05 var(--head-font);margin:0;letter-spacing:.005em}
+h2{font:600 23px/1.15 var(--head-font);margin:0}
+h3{font:600 18px/1.2 var(--head-font);margin:0 0 8px}
+p{margin:0}
+.muted{color:var(--ink2)}
+.small{font-size:13.5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card>h2,.card>.ch{margin-bottom:12px}
+.ch{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.cols>*,.next-grid>*{min-width:0}
+
+/* buttons */
+.btn{appearance:none;border:1px solid var(--navy);background:var(--surface);color:var(--navy);border-radius:8px;padding:8px 14px;font:500 14.5px var(--body-font);cursor:pointer;display:inline-flex;gap:7px;align-items:center;justify-content:center;white-space:nowrap}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--navy);color:#fff}
+.btn.primary:hover{background:var(--navy-2)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.danger.solid{background:var(--bad);color:#fff}
+.btn.sm{padding:5px 10px;font-size:13.5px;border-radius:7px}
+.btn.ghost{border-color:transparent;color:var(--ink2)}
+.btn.on-dark{background:#fff;color:var(--navy);border-color:#fff}
+.btn.on-dark:hover{background:#E6EDF5}
+.btn.line-dark{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+.btn.line-dark:hover{background:rgba(255,255,255,.12)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+html[data-theme="dark"] .btn{border-color:#6AA9E8;color:#BFD9F5}
+html[data-theme="dark"] .btn.primary{background:#2C6AAA;border-color:#2C6AAA;color:#fff}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .btn{border-color:#6AA9E8;color:#BFD9F5}
+  html:not([data-theme="light"]) .btn.primary{background:#2C6AAA;border-color:#2C6AAA;color:#fff}
+  html:not([data-theme="light"]) .btn.on-dark{background:#fff;color:var(--navy);border-color:#fff}
+  html:not([data-theme="light"]) .btn.line-dark{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+}
+
+/* hero */
+.next-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:16px}
+.hero{position:relative;overflow:hidden;background:var(--hero);color:var(--hero-ink);border-radius:14px;padding:20px 22px 18px}
+.hero::after{content:"";position:absolute;right:-34px;top:-34px;width:210px;height:210px;pointer-events:none;opacity:.08;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 216 216'%3E%3Cg stroke='white' stroke-width='7.2' stroke-linecap='round' fill='none'%3E%3Cpath d='M28.8 28.8L108 108M187.2 28.8L108 108M187.2 187.2L108 108M28.8 187.2L108 108'/%3E%3Ccircle cx='108' cy='108' r='13.2'/%3E%3C/g%3E%3C/svg%3E") no-repeat center/contain}
+.hero>*{position:relative;z-index:1}
+.hero header{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+.hero header span{font-size:13.5px;opacity:.82}
+.order{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.opill{padding:3px 10px;border-radius:999px;font-size:13px;border:1px solid rgba(255,255,255,.35);color:rgba(255,255,255,.88);white-space:nowrap}
+.opill.away{background:rgba(255,255,255,.18);border-style:dashed}
+.opill.nx{background:#fff;color:var(--navy);border-color:#fff;font-weight:600}
+.lbl{font-size:13.5px;opacity:.8}
+.who{font:600 46px/1 var(--head-font);margin:2px 0 0;letter-spacing:.005em}
+.role{opacity:.85;margin-bottom:14px}
+.dates{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dates div span{display:block;font-size:12.5px;opacity:.78}
+.dates div b{font:600 24px/1.1 var(--head-font)}
+.dates .arrow{opacity:.6}
+.meta{margin:12px 0 14px;font-size:14px;opacity:.9;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tagd{background:rgba(255,255,255,.16);border-radius:999px;padding:2px 10px;font-size:12.5px}
+.foot{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.22);font-size:13.5px;opacity:.92}
+
+/* generic rows */
+.list>.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:11px 0;border-top:1px solid var(--line)}
+.list>.row:first-child{border-top:0;padding-top:2px}
+.grow{flex:1 1 150px;min-width:0}
+.list.wrap>.row{flex-wrap:wrap}
+.list.wrap .grow{flex:1 1 150px}
+.grow b,.grow .t{display:block;overflow-wrap:anywhere}
+.av{width:36px;height:36px;border-radius:50%;background:var(--gc,#15385A);color:#fff;display:grid;place-items:center;font:600 14px var(--head-font);letter-spacing:.04em;flex:none}
+.av.sm{width:28px;height:28px;font-size:12px}
+.daybox{width:46px;flex:none;text-align:center;border:1px solid var(--line);border-radius:8px;padding:3px 0;background:var(--surface)}
+.daybox b{display:block;font:600 21px/1 var(--head-font)}
+.daybox small{font-size:11.5px;color:var(--ink2)}
+.tag{font-size:12.5px;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.tag.planned{background:transparent;border:1px dashed var(--ink2);color:var(--ink2)}
+.tag.booked{background:var(--navy);color:#fff}
+.tag.away{background:var(--navy-2);color:#fff}
+.tag.done{color:var(--ink2)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.msg{padding:9px 12px;border-radius:8px;font-size:14px;margin:8px 0}
+.msg.warn{background:var(--warn-bg);color:var(--warn)}
+.msg.bad{background:var(--bad-bg);color:var(--bad)}
+.msg.good{background:var(--good-bg);color:var(--good)}
+.msg.info{background:var(--soft);color:var(--ink)}
+.banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+.meter{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.meter .u{background:var(--meter)}
+.meter .p{background:repeating-linear-gradient(135deg,var(--meter) 0 3px,var(--meter-p) 3px 7px)}
+.meter.over .u,.meter.over .p{background:var(--bad)}
+.bal{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px 22px}
+.top2{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:14px}
+.sub{font-size:13px;color:var(--ink2);margin-top:4px}
+
+/* rotation */
+.mrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.mrow:first-of-type{border-top:0}
+.pos{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--navy-2);display:grid;place-items:center;font:600 14px var(--head-font);flex:none;color:var(--ink)}
+.mrow .when{font-size:14px;color:var(--ink2);flex:1 1 220px}
+.mrow .slot{flex:0 0 92px}
+.mv{display:flex;gap:4px}
+.mv button{appearance:none;border:1px solid var(--line);background:var(--surface);width:30px;height:30px;border-radius:7px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.mv button:disabled{opacity:.35;cursor:not-allowed}
+.lrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.lrow.gaprow{background:var(--soft);color:var(--ink2);border-top:0;border-radius:8px;padding:8px 0;margin:3px 0}
+.lrow.gaprow .c-name{padding-left:37px}
+.lrow.gaprow+.lrow{border-top:0}
+.lrow .c-name{flex:1 1 170px;display:flex;gap:9px;align-items:center;min-width:0}
+.lrow .c-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .c-dates{flex:2 1 250px}
+.lrow .c-days{flex:0 0 58px;font-weight:600}
+.lrow .c-stat{flex:0 0 100px}
+.lrow .c-act{margin-left:auto;display:flex;gap:8px;align-items:center;justify-content:flex-end;min-width:min(440px,100%)}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13.5px;color:var(--ink2);cursor:pointer}
+.chk input{width:auto;margin:0}
+
+/* calendar */
+.cal-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.cal-head h2{min-width:170px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{appearance:none;border:0;background:transparent;padding:7px 13px;font:500 14px var(--body-font);cursor:pointer;color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.gf{display:flex;gap:6px;flex-wrap:wrap}
+.gf button{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;font-size:13.5px;display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--ink)}
+.gf button i{width:10px;height:10px;border-radius:3px;background:var(--gc)}
+.gf button[aria-pressed="false"]{opacity:.5;text-decoration:line-through}
+.dow,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{padding:6px 8px;font-size:13px;color:var(--ink2);font-weight:500}
+.cal-grid{gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.cell{background:var(--surface);min-height:102px;padding:5px 6px 6px;cursor:pointer;position:relative;min-width:0}
+.cell.other{background:var(--bg)}
+.cell.other .dnum{opacity:.5}
+.cell:hover{background:var(--soft)}
+.dnum{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 4px;border-radius:12px;font:600 14px var(--head-font)}
+.cell.today .dnum{background:var(--navy);color:#fff}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--navy-2)}
+.cell.clash::after{content:"";position:absolute;right:6px;top:8px;width:9px;height:9px;border-radius:50%;background:var(--bad)}
+.chip{display:flex;gap:5px;align-items:center;font-size:12.5px;line-height:1.25;padding:2px 6px;border-radius:5px;color:#fff;background-color:var(--gc);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip em{font-style:normal;opacity:.85;font-size:11.5px}
+.chip.travel{background-image:linear-gradient(135deg,rgba(255,255,255,.3) 25%,transparent 25% 50%,rgba(255,255,255,.3) 50% 75%,transparent 75%);background-size:9px 9px}
+.chip.planned{outline:1.5px dashed rgba(255,255,255,.85);outline-offset:-3px}
+.more{font-size:12px;color:var(--ink2);margin-top:3px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:12px 0 0;align-items:center}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{width:22px;height:12px;border-radius:3px;background:var(--navy)}
+.legend i.t{background-color:var(--navy);background-image:linear-gradient(135deg,rgba(255,255,255,.3) 25%,transparent 25% 50%,rgba(255,255,255,.3) 50% 75%,transparent 75%);background-size:9px 9px}
+.legend i.p{background:transparent;border:1.5px dashed var(--navy-2)}
+.legend i.c{width:10px;height:10px;border-radius:50%;background:var(--bad)}
+.day-detail{margin-top:16px}
+.tl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.tl-in{position:relative}
+.tl-row{display:flex;height:36px;border-bottom:1px solid var(--line);position:relative}
+.tl-row:last-child{border-bottom:0}
+.tl-label{flex:0 0 var(--lab,168px);position:sticky;left:0;z-index:4;background:var(--surface);padding:0 10px;border-right:1px solid var(--line);display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px}
+.tl-row.gh .tl-label{background:var(--soft);font:600 15px var(--head-font)}
+.tl-row.gh{background:var(--soft)}
+.tl-row.mh{height:30px}
+.tl-track{position:relative;flex:none}
+.tl-mon{position:absolute;top:0;bottom:0;border-left:1px solid var(--line);padding:6px 6px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.tl-grid{position:absolute;top:0;bottom:0;left:var(--lab,168px);pointer-events:none;z-index:1}
+.tl-grid i{position:absolute;top:0;bottom:0;border-left:1px solid var(--line)}
+.tl-grid i.today{border-left:2px solid var(--navy-2)}
+.bar{position:absolute;top:6px;height:24px;border-radius:5px;background:var(--gc);color:#fff;font-size:12px;display:flex;align-items:center;padding:0 7px;overflow:hidden;white-space:nowrap;cursor:pointer;z-index:2;border:0}
+.bar.past{opacity:.5}
+.bar.planned{opacity:.78;outline:1.5px dashed rgba(255,255,255,.85);outline-offset:-3px}
+.bar.clash{box-shadow:0 0 0 2px var(--bad)}
+.bar .tr{position:absolute;top:0;bottom:0;width:var(--ppd);background-image:linear-gradient(135deg,rgba(255,255,255,.4) 25%,transparent 25% 50%,rgba(255,255,255,.4) 50% 75%,transparent 75%);background-size:7px 7px}
+.tmark{position:absolute;top:6px;height:24px;border-radius:3px;z-index:2;background-color:var(--gc);background-image:linear-gradient(135deg,rgba(255,255,255,.45) 25%,transparent 25% 50%,rgba(255,255,255,.45) 50% 75%,transparent 75%);background-size:7px 7px}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(8,22,40,.58);display:grid;place-items:center;z-index:100;padding:14px}
+.modal{background:var(--surface);color:var(--ink);border-radius:16px;width:min(560px,100%);max-height:calc(100dvh - 28px);overflow:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.4)}
+.modal.wide{width:min(780px,100%)}
+.modal h2{margin-bottom:4px}
+.modal .mh{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+.modal .mf{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.f>label,.lab{font-size:13.5px;font-weight:500;color:var(--ink2)}
+.f small{color:var(--ink2);font-size:12.5px}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],select,textarea{width:100%;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px}
+textarea{resize:vertical;min-height:84px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qb{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.sumbox{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:6px 0;background:var(--bg)}
+.sumbox p{margin:3px 0}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;font-size:14.5px}
+.kv dt{color:var(--ink2)}.kv dd{margin:0;overflow-wrap:anywhere}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer}
+.radio input{width:auto;margin-top:4px}
+.ptable{width:100%;border-collapse:collapse;font-size:14px}
+.ptable td,.ptable th{padding:6px 8px;border-top:1px solid var(--line);text-align:left}
+.ptable th{font-weight:500;color:var(--ink2);border-top:0}
+.ptable tr.gap td{background:var(--soft);color:var(--ink2);font-style:italic}
+
+.welcome{max-width:620px;margin:24px auto;text-align:left;display:flex;flex-direction:column;gap:14px}
+.welcome svg{width:72px;height:72px;border-radius:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);width:max-content;bottom:24px;background:var(--navy);color:#fff;border-radius:10px;padding:10px 16px;display:flex;gap:14px;align-items:center;z-index:200;box-shadow:0 8px 28px rgba(0,0,0,.35);max-width:calc(100vw - 28px);font-size:14.5px}
+.toast button{appearance:none;background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:7px;padding:3px 10px;cursor:pointer}
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.setup .card{padding:16px}
+textarea.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;min-height:150px}
+input[type=file]{display:none}
+
+@media (max-width:820px){
+  .top{padding:9px 14px;gap:10px}
+  .brand small{display:none}
+  .tabs{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--navy);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;z-index:30;border-top:1px solid rgba(255,255,255,.18)}
+  .tab{flex:1;flex-direction:column;gap:2px;font-size:11.5px;padding:6px 4px}
+  main{padding:16px 14px 110px}
+  .toast{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+  h1.pt{font-size:30px}
+  .who{font-size:40px}
+  .g2{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr}
+  .status span{display:none}
+}
+@media (max-width:640px){
+  .cell{min-height:60px;padding:3px}
+  .chip{height:7px;padding:0;font-size:0;margin-top:2px}
+  .chip *{display:none}
+  .more{font-size:11px}
+  .dow div{padding:4px 2px;text-align:center;font-size:12px}
+  .dnum{min-width:22px;height:22px;font-size:13px}
+}
+@media (pointer:coarse),(max-width:820px){
+  .chk{min-height:40px;gap:9px;font-size:14.5px;padding:2px 4px 2px 0}
+  .chk input{width:22px;height:22px;flex:none}
+  .btn.sm{min-height:38px;padding:7px 12px}
+  .mv button{width:40px;height:40px}
+  .seg button{min-height:40px}
+  .status{min-height:34px}
+}
+@media (max-width:820px){
+  .lrow .c-act{flex-wrap:wrap;justify-content:flex-start;width:100%;min-width:0;margin-left:0;gap:4px 14px}
+  .lrow .chk{white-space:nowrap}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand" id="brand"></div>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  <div class="top-right">
+    <button class="status" id="saveStatus" data-act="tab" data-tab="backup" title="Save status"></button>
+    <button class="iconbtn" data-act="open-settings" aria-label="Settings"></button>
+  </div>
+</header>
+<main id="view"></main>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= constants ================= */
+var APP_ID='pelorus-crew-leave-tracker', SCHEMA=1, APP_VERSION='2.1 (15 Nov 2026)';
+var LS_KEY='pelorus-leave:v1', LS_UNDO='pelorus-leave:prerestore', LS_UNSYNCED='pelorus-leave:unsynced';
+var DAY=86400000;
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DOWS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var DOWL=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var PALETTE=['#15385A','#2E74B5','#4F6F8F','#1F8A9E','#6D5FB0','#8A5A2B'];
+var DEFAULT_GROUPS=[
+  {id:'deck',name:'Deck',pattern:'rotation',maxAway:1,overlapEvery:0,color:'#15385A'},
+  {id:'interior',name:'Interior',pattern:'rotation',maxAway:1,overlapEvery:3,color:'#2E74B5'},
+  {id:'galley',name:'Galley',pattern:'flexible',maxAway:0,overlapEvery:0,color:'#4F6F8F'}
+];
+var DEFAULT_ROLES={deck:['Lead Deck','Deck 1','Deck 2','Deck 3'],interior:['Stew 1','Stew 2','Stew 3'],galley:['Sous Chef']};
+var LOGO='<svg viewBox="0 0 216 216" role="img" aria-label="Pelorus Capital Projects logo" xmlns="http://www.w3.org/2000/svg"><rect width="216" height="216" fill="#15385A"/><g stroke="#C9A227" stroke-width="7.2" stroke-linecap="round" fill="none"><path d="M28.8 28.8L108 108M187.2 28.8L108 108M187.2 187.2L108 108M28.8 187.2L108 108"/><circle cx="108" cy="108" r="13.2" fill="#15385A"/></g></svg>';
+var ICONS={
+  overview:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  rotation:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/>',
+  crew:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.2c2.7 0 4.5 1.8 4.5 4.8"/>',
+  backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 20h16"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  left:'<path d="M15 5l-7 7 7 7"/>',
+  right:'<path d="M9 5l7 7-7 7"/>',
+  up:'<path d="M6 15l6-6 6 6"/>',
+  down:'<path d="M6 9l6 6 6-6"/>',
+  arrow:'<path d="M4 12h16M14 6l6 6-6 6"/>'
+};
+function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+ICONS[n]+'</svg>';}
+
+/* ================= date helpers (day numbers, UTC) ================= */
+function sid(x){return String(x==null?'':x).replace(/[^A-Za-z0-9_-]/g,'');}
+function isIso(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
+function pd(s){return Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))/DAY;}
+function iso(n){return new Date(n*DAY).toISOString().slice(0,10);}
+function parts(n){var d=new Date(n*DAY);return {y:d.getUTCFullYear(),m:d.getUTCMonth(),d:d.getUTCDate(),w:(d.getUTCDay()+6)%7};}
+function todayN(){var t=new Date();return Date.UTC(t.getFullYear(),t.getMonth(),t.getDate())/DAY;}
+function fmtDS(n){var p=parts(n);return DOWS[p.w]+' '+p.d+' '+MON[p.m]+(p.y!==parts(todayN()).y?' '+p.y:'');}
+function fmtFrom(o,b){var p=parts(o);return p.y===parts(b).y?DOWS[p.w]+' '+p.d+' '+MON[p.m]:fmtDS(o);}
+function fmtS(n){var p=parts(n);return p.d+' '+MON[p.m];}
+function fmt(n){var p=parts(n);return DOWS[p.w]+' '+p.d+' '+MON[p.m]+' '+p.y;}
+function fmtL(n){var p=parts(n);return DOWL[p.w]+' '+p.d+' '+MONL[p.m]+' '+p.y;}
+function monthStart(n){var p=parts(n);return Date.UTC(p.y,p.m,1)/DAY;}
+function monthEnd(n){var p=parts(n);return Date.UTC(p.y,p.m+1,0)/DAY;}
+function isEOM(n){return parts(n+1).d===1;}
+function addMonths(n,k){
+  var p=parts(n), last=Date.UTC(p.y,p.m+k+1,0)/DAY;
+  if(isEOM(n)&&p.d>=28) return last;
+  return Date.UTC(p.y,p.m+k,Math.min(p.d,parts(last).d))/DAY;
+}
+function nextBoundary(n){var p=parts(n);return (p.d===1||isEOM(n))?n:monthEnd(n);}
+function snap(n){
+  var s=monthStart(n), e=monthEnd(n), c=[s-1,s,e,e+1], best=c[0];
+  c.forEach(function(x){ if(Math.abs(x-n)<Math.abs(best-n)||(Math.abs(x-n)===Math.abs(best-n)&&x>best)) best=x; });
+  return best;
+}
+function rel(n,t){var d=n-t;return d===0?'today':d===1?'tomorrow':d>0?'in '+d+' days':Math.abs(d)+' days ago';}
+function plural(n,w){return n+' '+w+(n===1?'':'s');}
+
+/* ================= misc helpers ================= */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);}
+function $(s,r){return (r||document).querySelector(s);}
+function val(id){var e=document.getElementById(id);return e?e.value:'';}
+function setVal(id,v){var e=document.getElementById(id);if(e)e.value=v;}
+function chk(id){var e=document.getElementById(id);return !!(e&&e.checked);}
+function firstName(n){return String(n).trim().split(/\s+/)[0]||'';}
+function initials(n){var p=String(n).trim().split(/\s+/);return ((p[0]||'').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase();}
+function btn(label,act,attrs,cls){return '<button class="btn '+(cls||'')+'" data-act="'+act+'" '+(attrs||'')+'>'+label+'</button>';}
+function stamp(){var d=new Date(),z=function(x){return String(x).padStart(2,'0');};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes());}
+
+/* ================= state ================= */
+var state=emptyState();
+var ui={tab:'overview',cal:{mode:'month',cur:null,sel:null,hidden:{}},rotAll:false,rotMore:{},modal:null,restore:null,showFormer:false,localOk:true,undo:null};
+var cloud={ref:null,off:false,busy:false,dirty:false,fails:0,fatal:false,savedRev:null,savedAt:null,heard:false,slow:false,timer:null};
+var conflictCache={key:'',val:null};
+
+function defaultSettings(){return {vessel:'',yearStartMonth:11,trackStart:'2026-11-01',dayCount:'away',allowance:90,blockDays:30,lastBackupAt:null,groups:DEFAULT_GROUPS.map(function(g){return Object.assign({},g);})};}
+function emptyState(){return {app:APP_ID,schema:SCHEMA,rev:0,updatedAt:null,settings:defaultSettings(),crew:[],leaves:[]};}
+function normalize(s){
+  var out=emptyState();
+  if(!s||typeof s!=='object') return out;
+  out.rev=+s.rev||0; out.updatedAt=s.updatedAt||null;
+  var st=Object.assign(defaultSettings(),s.settings||{});
+  if(!(s.settings&&isIso(s.settings.trackStart))){st.trackStart='2026-11-01';st.yearStartMonth=11;}
+  st.yearStartMonth=Math.min(12,Math.max(1,parseInt(st.yearStartMonth)||1));
+  var dc=s.settings&&s.settings.dayCount;
+  st.dayCount=(dc==='away'||dc==='between'||dc==='inclusive')?dc:((s.settings&&s.settings.travelCounts===true)?'inclusive':'away'); delete st.travelCounts;
+  st.allowance=parseInt(st.allowance)||90; st.blockDays=parseInt(st.blockDays)||30;
+  var gs=Array.isArray(st.groups)&&st.groups.length?st.groups:DEFAULT_GROUPS;
+  st.groups=gs.map(function(g,i){return {id:sid(g.id)||uid(),name:String(g.name||'Group'),pattern:g.pattern==='flexible'?'flexible':'rotation',maxAway:Math.min(50,Math.max(0,parseInt(g.maxAway)||0)),overlapEvery:Math.max(0,parseInt(g.overlapEvery)||0),color:/^#[0-9a-fA-F]{3,8}$/.test(g.color||'')?g.color:PALETTE[i%PALETTE.length]};});
+  out.settings=st;
+  out.crew=(Array.isArray(s.crew)?s.crew:[]).filter(function(c){return c&&sid(c.id)&&c.name;}).map(function(c){
+    return {id:sid(c.id),name:String(c.name),role:String(c.role||''),group:sid(c.group)||st.groups[0].id,order:+c.order||0,active:c.active!==false,
+      leaveMode:c.leaveMode==='flexible'?'flexible':'blocks',allowance:Math.min(366,Math.max(1,parseInt(c.allowance)||90)),blockDays:Math.min(366,Math.max(1,parseInt(c.blockDays)||30)),
+      home:String(c.home||''),notes:String(c.notes||''),left:isIso(c.left)?c.left:null,demo:!!c.demo};
+  });
+  var tsN=isIso(st.trackStart)?pd(st.trackStart):null, crewIds={};
+  out.crew=out.crew.filter(function(c){return !c.demo;}); out.crew.forEach(function(c){crewIds[c.id]=1;});
+  out.leaves=(Array.isArray(s.leaves)?s.leaves:[]).filter(function(l){return l&&sid(l.id)&&l.crewId&&isIso(l.off)&&isIso(l.back)&&pd(l.back)>pd(l.off)&&!l.demo&&crewIds[sid(l.crewId)]&&(tsN===null||pd(l.off)>=tsN);}).map(function(l){
+    return {id:sid(l.id),crewId:sid(l.crewId),off:l.off,back:l.back,note:String(l.note||''),booked:!!l.booked,returnBooked:!!l.returnBooked,travelOut:isIso(l.travelOut)?l.travelOut:null,travelBack:isIso(l.travelBack)?l.travelBack:null,mode:l.mode==='auto'?'auto':'manual',demo:!!l.demo};
+  });
+  return out;
+}
+
+/* ================= lookups ================= */
+function groupById(id){return state.settings.groups.filter(function(g){return g.id===id;})[0]||{id:id||'none',name:'Unassigned',pattern:'flexible',maxAway:0,overlapEvery:0,color:'#4F6F8F'};}
+function crewById(id){return state.crew.filter(function(c){return c.id===id;})[0]||null;}
+function activeCrew(){return state.crew.filter(function(c){return c.active;});}
+function byName(a,b){return a.name.localeCompare(b.name);}
+function membersOf(gid){return state.crew.filter(function(c){return c.active&&c.group===gid;}).sort(function(a,b){return (a.order-b.order)||byName(a,b);});}
+function byOff(a,b){return a.off<b.off?-1:a.off>b.off?1:(a.back<b.back?-1:a.back>b.back?1:0);}
+function leavesOfCrew(cid){return state.leaves.filter(function(l){return l.crewId===cid;}).sort(byOff);}
+function leavesOfGroup(gid){var ids={};state.crew.forEach(function(c){if(c.group===gid)ids[c.id]=1;});return state.leaves.filter(function(l){return ids[l.crewId];}).sort(byOff);}
+function renumber(gid){membersOf(gid).forEach(function(c,i){c.order=i+1;});}
+function placeAt(c,p){
+  var others=membersOf(c.group).filter(function(x){return x.id!==c.id;});
+  var i=Math.max(0,Math.min(others.length,(parseInt(p)||others.length+1)-1));
+  others.splice(i,0,c); others.forEach(function(x,k){x.order=k+1;});
+}
+function hasData(s){return s.crew.length>0||s.leaves.length>0;}
+function chargedBounds(o,b){var m=state.settings.dayCount;return m==='inclusive'?[o,b]:m==='between'?[o+1,b-1]:[o,b-1];}
+
+/* ================= leave maths ================= */
+function travelTxt(l){var a=[];if(l.travelOut)a.push('home '+fmtDS(pd(l.travelOut)));if(l.travelBack)a.push('back '+fmtDS(pd(l.travelBack)));return a.length?'Travel: '+a.join(', '):'';}
+function chargedRange(l){return chargedBounds(pd(l.off),pd(l.back));}
+function leaveDays(l){var r=chargedRange(l);return Math.max(0,r[1]-r[0]+1);}
+function crewNow(c,t){
+  var ls=leavesOfCrew(c.id);
+  for(var i=0;i<ls.length;i++){var o=pd(ls[i].off),b=pd(ls[i].back);if(t>=o&&t<b) return {away:true,l:ls[i],o:o,b:b};}
+  return {away:false};
+}
+function nextLeaveOf(c,t){return leavesOfCrew(c.id).filter(function(l){return pd(l.off)>t;})[0]||null;}
+function leaveStatus(l,t){var o=pd(l.off),b=pd(l.back);if(t>=b)return 'done';if(t>=o)return 'away';return (l.booked||l.returnBooked)?'booked':'planned';}
+function flightTag(l){return l.booked&&l.returnBooked?'Flights booked':l.booked?'Flight booked':l.returnBooked?'Return flight booked':'';}
+function leaveYearOf(n){var p=parts(n);return p.m>=state.settings.yearStartMonth-1?p.y:p.y-1;}
+function leaveYearLabel(y){return state.settings.yearStartMonth===1?String(y):y+'/'+String(y+1).slice(2);}
+function yearRange(y){var sm=state.settings.yearStartMonth-1;return [Date.UTC(y,sm,1)/DAY,Date.UTC(y+1,sm,1)/DAY-1];}
+function balance(c,y,opt){
+  opt=opt||{}; var t=todayN(), yr=yearRange(y), ys=yr[0], ye=yr[1], used=0, planned=0, periods=0, taken=0;
+  var ls=leavesOfCrew(c.id).filter(function(l){return l.id!==opt.exclude;});
+  if(opt.extra) ls=ls.concat([opt.extra]);
+  ls.forEach(function(l){
+    var o=pd(l.off),b=pd(l.back), cb=chargedBounds(o,b), a0=cb[0], b0=cb[1];
+    var ts=isIso(state.settings.trackStart)?pd(state.settings.trackStart):-1e9;
+    var a=Math.max(a0,ys,ts), e=Math.min(b0,ye); if(e<a) return;
+    if(o>=ys||o<ts){periods++; if(o<=t) taken++;}
+    var u=a<=t?Math.min(e,t)-a+1:0; used+=u; planned+=(e-a+1)-u;
+  });
+  return {used:used,planned:planned,total:used+planned,left:c.allowance-used,leftAfterPlan:c.allowance-used-planned,allow:c.allowance,periods:periods,periodsTaken:taken,blocks:Math.max(1,Math.round(c.allowance/(c.blockDays||30))),y:y};
+}
+
+/* ================= rotation engine ================= */
+function chainCount(ls){
+  if(!ls.length) return 0; var n=1;
+  for(var i=ls.length-1;i>0;i--){ if(pd(ls[i].off)-pd(ls[i-1].back)<=7) n++; else break; }
+  return n;
+}
+function planStartFor(gid,anchor,t){
+  var g=groupById(gid), mem=membersOf(gid); if(!mem.length) return null;
+  var ls=anchor.filter(function(l){return mem.some(function(m){return m.id===l.crewId;});}).sort(byOff);
+  if(!ls.length) return {crew:mem[0],start:nextBoundary(t),chain:0,overlap:false};
+  var last=ls[ls.length-1], idx=0;
+  mem.forEach(function(m,i){if(m.id===last.crewId)idx=i;});
+  var start=pd(last.back), chain=chainCount(ls), overlap=false;
+  if(g.overlapEvery>0&&chain>=g.overlapEvery){start=addMonths(start,1);chain=0;overlap=true;}
+  if(start<t){start=nextBoundary(t);chain=0;overlap=false;}
+  return {crew:mem[(idx+1)%mem.length],start:start,chain:chain,overlap:overlap};
+}
+function nextInfo(g,t){
+  var mem=membersOf(g.id); if(!mem.length) return null;
+  var ids={}; mem.forEach(function(m){ids[m.id]=1;});
+  var fut=state.leaves.filter(function(l){return ids[l.crewId]&&pd(l.off)>t;}).sort(byOff)[0];
+  if(fut) return {kind:(fut.booked||fut.returnBooked)?'booked':'planned',crew:crewById(fut.crewId),leave:fut,off:pd(fut.off),back:pd(fut.back)};
+  var s=planStartFor(g.id,leavesOfGroup(g.id),t); if(!s) return null;
+  return {kind:'suggested',crew:s.crew,off:s.start,back:s.start+autoLen(s.crew),overlap:s.overlap};
+}
+function buildPlan(gid,crewId,startN,chain0,months){
+  var g=groupById(gid), mem=membersOf(gid); if(!mem.length) return [];
+  var idx=0; mem.forEach(function(m,i){if(m.id===crewId)idx=i;});
+  var start=startN, chain=chain0, end=addMonths(startN,months), out=[], guard=0;
+  while(start<end&&guard++<80){
+    if(g.overlapEvery>0&&chain>=g.overlapEvery){
+      var to=addMonths(start,1); out.push({gap:true,from:start,to:to}); start=to; chain=0; if(start>=end) break;
+    }
+    var c=mem[idx%mem.length], back=addMonths(start,1);
+    out.push({crewId:c.id,off:iso(start),back:iso(back)});
+    idx++; chain++; start=back;
+  }
+  return out;
+}
+function overlapNote(g,t,info){
+  if(!(g.overlapEvery>0)||!info) return '';
+  var mem=membersOf(g.id), ids={}; mem.forEach(function(m){ids[m.id]=1;});
+  if(mem.some(function(m){return crewNow(m,t).away;})) return '';
+  var lastBack=null;
+  state.leaves.forEach(function(l){ if(ids[l.crewId]){var b=pd(l.back); if(b<=t&&(lastBack===null||b>lastBack)) lastBack=b;} });
+  if(lastBack===null||info.off<=t) return '';
+  if(info.off-lastBack>7) return 'Overlap month: all '+g.name+' crew are onboard until '+fmtDS(info.off)+'.';
+  return '';
+}
+function awayInGroup(gid,n){
+  var ids={}; state.crew.forEach(function(c){if(c.group===gid&&c.active)ids[c.id]=1;});
+  return state.leaves.filter(function(l){return ids[l.crewId]&&n>=pd(l.off)&&n<pd(l.back);});
+}
+function findConflicts(){
+  var key=state.rev+'|'+todayN()+'|'+state.leaves.length; if(conflictCache.key===key) return conflictCache.val;
+  var t=todayN(), from=t-45, to=t+430, ranges=[], ids={};
+  state.settings.groups.forEach(function(g){
+    if(!(g.maxAway>0)) return;
+    var mem={}; state.crew.forEach(function(c){if(c.group===g.id&&c.active)mem[c.id]=1;});
+    var ls=state.leaves.filter(function(l){return mem[l.crewId];}).map(function(l){return {l:l,o:pd(l.off),b:pd(l.back)};});
+    var cur=null;
+    for(var n=from;n<=to;n++){
+      var act=ls.filter(function(x){return n>=x.o&&n<x.b;});
+      if(act.length>g.maxAway){
+        act.forEach(function(x){ids[x.l.id]=1;});
+        var names=act.map(function(x){return crewById(x.l.crewId).name;}).sort().join('|');
+        if(cur&&cur.to===n-1&&cur.key===names) cur.to=n;
+        else {cur={gid:g.id,from:n,to:n,key:names,names:names.split('|'),max:g.maxAway};ranges.push(cur);}
+      } else cur=null;
+    }
+  });
+  var v={ranges:ranges,ids:ids}; conflictCache={key:key,val:v}; return v;
+}
+function getWarnings(){
+  var w=[], t=todayN(), y0=leaveYearOf(t);
+  findConflicts().ranges.forEach(function(r){
+    var g=groupById(r.gid);
+    w.push({lvl:'bad',text:g.name+': '+r.names.join(' and ')+' are away together '+(r.from===r.to?'on '+fmtDS(r.from):fmtDS(r.from)+' to '+fmtDS(r.to))+'. Limit is '+r.max+' away at a time.'});
+  });
+  activeCrew().forEach(function(c){
+    [y0,y0+1].forEach(function(y){
+      var b=balance(c,y);
+      if(b.total>b.allow) w.push({lvl:'warn',text:c.name+' is '+plural(b.total-b.allow,'day')+' over the '+b.allow+'-day allowance for leave year '+leaveYearLabel(y)+'.'});
+      if(c.leaveMode==='blocks'&&b.periods>b.blocks) w.push({lvl:'warn',text:c.name+' has '+b.periods+' leave periods in '+leaveYearLabel(y)+' (the plan is '+b.blocks+').'});
+    });
+    leavesOfCrew(c.id).forEach(function(l){
+      if(pd(l.back)>=t&&c.leaveMode==='blocks'&&leaveDays(l)>c.blockDays) w.push({lvl:'info',text:c.name+': leave from '+fmtS(pd(l.off))+' is '+plural(leaveDays(l)-c.blockDays,'day')+' longer than the '+c.blockDays+'-day block.'});
+    });
+  });
+  return w;
+}
+
+/* ================= automatic rotation ================= */
+var HORIZON_MONTHS=12;
+function autoLen(c){return (c&&parseInt(c.blockDays))||parseInt(state.settings.blockDays)||30;}
+function isFixedLeave(l,t){return pd(l.off)<=t||l.mode!=='auto'||l.booked||l.returnBooked;}
+function rebuildGroup(g,t){
+  var mem=membersOf(g.id), ids={}; mem.forEach(function(m){ids[m.id]=1;});
+  if(g.pattern!=='rotation'){
+    var n0=state.leaves.length;
+    state.leaves=state.leaves.filter(function(l){return !(ids[l.crewId]&&!isFixedLeave(l,t));});
+    return state.leaves.length!==n0;
+  }
+  if(!mem.length) return false;
+  var all=state.leaves.filter(function(l){return ids[l.crewId];}).sort(byOff);
+  if(!all.length) return false;
+  var started=all.filter(function(l){return pd(l.off)<=t;});
+  var anchor=started.length?started[started.length-1]:all[0], aOff=pd(anchor.off);
+  var autos=all.filter(function(l){return l!==anchor&&pd(l.off)>=aOff&&!isFixedLeave(l,t);});
+  var fixedAfter=all.filter(function(l){return l!==anchor&&pd(l.off)>=aOff&&isFixedLeave(l,t);});
+  var sig=function(arr){return arr.map(function(l){return l.id+'/'+l.crewId+'/'+l.off+'/'+l.back;}).join('|');};
+  var before=sig(autos), pool=autos.slice(), drop={};
+  autos.forEach(function(l){drop[l.id]=1;});
+  state.leaves=state.leaves.filter(function(l){return !drop[l.id];});
+  if(mem.length<2) return before!=='';
+  var prev=anchor, made=[], guard=0, horizon=addMonths(t,HORIZON_MONTHS), lastBack=pd(anchor.back);
+  all.forEach(function(l){if(pd(l.off)<=aOff&&(l===anchor||isFixedLeave(l,t)))lastBack=Math.max(lastBack,pd(l.back));});
+  var chain=chainCount(all.filter(function(l){return pd(l.off)<=aOff&&(l===anchor||isFixedLeave(l,t));}));
+  while(guard++<80){
+    var idx=-1; mem.forEach(function(m,i){if(m.id===prev.crewId)idx=i;});
+    var next=mem[(idx+1)%mem.length], pb=lastBack, start=pb, gap=false;
+    if(g.overlapEvery>0&&mem.length>1&&idx===mem.length-1){start=pb+autoLen(next);gap=true;}
+    if(start<t) start=nextBoundary(t);
+    var lyr=yearRange(leaveYearOf(start)), cnt=0, cap=Math.max(1,Math.round((parseInt(next.allowance)||90)/autoLen(next)));
+    state.leaves.forEach(function(l){if(l.crewId===next.id){var lo=pd(l.off);if(lo>=lyr[0]&&lo<=lyr[1])cnt++;}});
+    if(cnt>=cap){start=lyr[1]+1;gap=true;}
+    if(start>=horizon) break;
+    var end=start+autoLen(next), f=fixedAfter[0];
+    if(f&&pd(f.off)<end){
+      var fo=pd(f.off); lastBack=Math.max(lastBack,pd(f.back)); fixedAfter.shift();
+      if(fo>=pb||(f.crewId===next.id&&pd(f.back)>=pb)){chain=(!gap&&fo-pb<=7)?chain+1:1;prev=f;}
+      continue;
+    }
+    var nl=pool.shift()||{id:uid(),note:'',booked:false,returnBooked:false,travelOut:null,travelBack:null,demo:false};
+    var pOff=nl.off, pBack=nl.back, pCrew=nl.crewId;
+    nl.crewId=next.id; nl.off=iso(start); nl.back=iso(end); nl.mode='auto';
+    if(pCrew&&pCrew!==nl.crewId){nl.travelOut=null;nl.travelBack=null;}
+    else {
+      if(nl.travelOut&&pOff&&pOff!==nl.off) nl.travelOut=iso(pd(nl.travelOut)+start-pd(pOff));
+      if(nl.travelBack&&pBack&&pBack!==nl.back) nl.travelBack=iso(pd(nl.travelBack)+end-pd(pBack));
+    }
+    state.leaves.push(nl); made.push(nl);
+    chain=(gap||start-pb>7)?1:chain+1; prev=nl; lastBack=Math.max(lastBack,end);
+  }
+  return sig(made)!==before;
+}
+function rebuildAll(){var t=todayN(),ch=false;state.settings.groups.forEach(function(g){if(rebuildGroup(g,t))ch=true;});conflictCache={key:'',val:null};return ch;}
+
+/* ================= persistence ================= */
+function localSave(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));return true;}catch(e){return false;}}
+function commit(){
+  state.rev=(state.rev||0)+1; state.updatedAt=new Date().toISOString();
+  rebuildAll(); ui.localOk=localSave(); scheduleCloud(); render();
+  if(ui.modal&&ui.modal.type==='profile'&&crewById(ui.modal.id)){var pm=ui.modal;openProfile(pm.id,pm.year);}
+}
+function scheduleCloud(){
+  cloud.dirty=true;
+  if(cloud.ref&&!cloud.fatal){clearTimeout(cloud.timer);cloud.timer=setTimeout(pushCloud,500);}
+  paintStatus();
+}
+function pushCloud(){
+  if(cloud.busy||!cloud.ref||!cloud.dirty||cloud.fatal) return;
+  cloud.busy=true; cloud.dirty=false;
+  var rev=state.rev, json=JSON.stringify(state), at=state.updatedAt;
+  paintStatus();
+  cloud.ref.set({rev:rev,updatedAt:at,size:json.length,json:json}).then(function(){
+    cloud.busy=false; cloud.savedRev=rev; cloud.savedAt=Date.now(); cloud.fails=0;
+    if(cloud.dirty){clearTimeout(cloud.timer);cloud.timer=setTimeout(pushCloud,100);}
+    paintStatus(); if(ui.tab==='backup') render();
+  },function(e){
+    cloud.busy=false; cloud.dirty=true; cloud.fails++;
+    var code=e&&e.code;
+    if(['invalid_argument','quota_exceeded','not_granted','capability_disabled','capability_removed','revoked'].indexOf(code)>=0){cloud.fatal=code;}
+    else {clearTimeout(cloud.timer);cloud.timer=setTimeout(pushCloud,Math.min(30000,1500*Math.pow(2,cloud.fails-1)));}
+    paintStatus();
+  });
+}
+function saveNow(){cloud.fatal=false;cloud.fails=0;cloud.dirty=true;pushCloud();paintStatus();}
+function adoptRemote(remote){
+  var unsynced=cloud.savedRev!==state.rev&&hasData(state)&&state.rev>0;
+  if(unsynced){try{localStorage.setItem(LS_UNSYNCED,JSON.stringify({at:new Date().toISOString(),json:JSON.stringify(state)}));}catch(e){}}
+  state=normalize(remote); rebuildAll(); ui.localOk=localSave(); cloud.savedRev=state.rev; cloud.savedAt=Date.now(); cloud.dirty=false;
+  render(); if(unsynced) toast('Newer data from another device was loaded. Your unsaved changes are kept under Backup.');
+}
+function onRemote(snap){
+  cloud.heard=true; cloud.slow=false;
+  var fromCache=snap.metadata&&snap.metadata.fromCache;
+  if(snap.exists){
+    var d=snap.data(), remote=null;
+    try{remote=JSON.parse(d.json);}catch(e){}
+    if(remote&&typeof remote.rev==='number'){
+      if(remote.rev>state.rev) adoptRemote(remote);
+      else if(remote.rev<state.rev){ if(!fromCache){cloud.dirty=true;pushCloud();} }
+      else {cloud.savedRev=state.rev; if(!cloud.savedAt) cloud.savedAt=Date.now();}
+    }
+  } else if(!fromCache){
+    if(hasData(state)){cloud.dirty=true;pushCloud();} else cloud.savedRev=state.rev;
+  }
+  paintStatus();
+}
+function initCloud(){
+  setTimeout(function(){if(!cloud.heard&&cloud.ref){cloud.slow=true;paintStatus();}},10000);
+  var p=(window.claude&&window.claude.use)?window.claude.use('db'):Promise.resolve(null);
+  p.then(function(db){
+    if(!db){cloud.off=true;paintStatus();return;}
+    cloud.ref=db.doc('app/state');
+    cloud.ref.onSnapshot(onRemote,function(e){cloud.fatal=(e&&e.code)||'error';paintStatus();});
+    paintStatus();
+  },function(){cloud.off=true;paintStatus();});
+}
+function paintStatus(){
+  var el=$('#saveStatus'); if(!el) return;
+  var cls='', txt='';
+  var time=cloud.savedAt?new Date(cloud.savedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
+  if(!ui.localOk&&(!cloud.ref||cloud.savedRev!==state.rev)){cls='red';txt='Not saved. Download a backup';}
+  else if(cloud.ref&&!cloud.fatal){
+    if(cloud.fails>0){cls='amber';txt='Retrying save…';}
+    else if(cloud.busy||cloud.savedRev!==state.rev){
+      if(state.rev===0&&!hasData(state)){txt='Ready';} else {cls='amber';txt='Saving…';}
+    } else {txt='Saved'+(time?' '+time:'');}
+  } else if(cloud.fatal){cls='red';txt='Cloud save failed. Saved on this device';}
+  else if(cloud.off){cls='amber';txt='Saved on this device only';}
+  else {cls='amber';txt='Connecting…';}
+  if(cloud.slow&&!cloud.heard&&!cloud.fatal){cls='amber';txt='Cloud slow. Saved on this device';}
+  el.className='status '+cls;
+  el.innerHTML='<i></i><span>'+esc(txt)+'</span>';
+  el.setAttribute('aria-label','Save status: '+txt);
+}
+
+/* ================= undo / toast ================= */
+function pushUndo(){ui.undo=JSON.stringify(state);}
+function undo(){
+  if(!ui.undo) return; var rev=state.rev; state=normalize(JSON.parse(ui.undo)); state.rev=rev; ui.undo=null; commit(); toast('Undone');
+}
+var toastT=null;
+function toast(msg,withUndo,calN){
+  var hasCal=typeof calN==='number'&&isFinite(calN);
+  var root=$('#toastRoot'); root.innerHTML='<div class="toast" role="status"><span>'+esc(msg)+'</span>'+(hasCal?'<button data-act="goto-cal" data-n="'+calN+'">View in calendar</button>':'')+(withUndo?'<button data-act="undo">Undo</button>':'')+'</div>';
+  clearTimeout(toastT); toastT=setTimeout(function(){root.innerHTML='';},(withUndo||hasCal)?10000:4000);
+}
+
+/* ================= shared view bits ================= */
+function avatar(c,small){return '<span class="av'+(small?' sm':'')+'" style="--gc:'+groupById(c.group).color+'">'+esc(initials(c.name))+'</span>';}
+function emptyCard(msg){return '<div class="card muted">'+msg+'</div>';}
+function backupBanner(){
+  if(!state.crew.length) return '';
+  var last=state.settings.lastBackupAt, days=last?Math.floor((Date.now()-new Date(last).getTime())/DAY):null;
+  if(last&&days<7) return '';
+  var msg=last?'Your last backup was '+plural(days,'day')+' ago.':'You have not downloaded a backup yet.';
+  return '<div class="msg warn banner"><span>'+msg+' Download one and keep it in Dropbox.</span>'+btn('Download backup','backup-download','','sm')+'</div>';
+}
+function balanceRow(c,y){
+  var b=balance(c,y), pct=function(x){return Math.min(100,Math.max(0,x/b.allow*100));};
+  var over=b.used>b.allow;
+  var note=c.leaveMode==='blocks'?'leave '+Math.min(b.periodsTaken,b.blocks)+' of '+b.blocks+' started':'flexible leave';
+  return '<div><div class="top2"><span><b>'+esc(c.name)+'</b> <span class="muted">'+esc(c.role)+'</span></span><span>'+(over?'<b style="color:var(--bad)">'+(b.used-b.allow)+' over</b>':'<b>'+b.left+'</b> of '+b.allow+' left')+'</span></div>'+
+    '<div class="meter '+(over?'over':'')+'" role="img" aria-label="'+b.used+' of '+b.allow+' days taken"><i class="u" style="width:'+pct(b.used)+'%"></i></div>'+
+    '<div class="sub">'+plural(b.used,'day')+' taken so far · '+note+'</div></div>';
+}
+
+/* ================= views ================= */
+var VIEWS={};
+VIEWS.overview=function(){
+  var t=todayN(), act=activeCrew();
+  if(!state.crew.length) return emptyWelcome();
+  var away=act.filter(function(c){return crewNow(c,t).away;});
+  var h=backupBanner();
+  h+='<div class="page-head"><div><h1 class="pt">'+esc(fmtL(t))+'</h1><p class="muted">'+(act.length-away.length)+' of '+act.length+' crew onboard · '+away.length+' on leave</p></div><div class="actions">'+btn(ic('plus')+' Add leave','add-leave','','primary')+'</div></div>';
+  var heroes=state.settings.groups.map(function(g){return groupHero(g,t);}).join('');
+  if(heroes) h+='<div class="next-grid">'+heroes+'</div>';
+  var w=getWarnings();
+  if(w.length){h+='<div class="card" style="margin-bottom:16px"><h3>Needs attention</h3>'+w.slice(0,8).map(function(x){return '<div class="msg '+(x.lvl==='info'?'info':x.lvl)+'">'+esc(x.text)+'</div>';}).join('')+(w.length>8?'<p class="muted small">+ '+(w.length-8)+' more</p>':'')+'</div>';}
+  var nowList=away.sort(function(a,b){return crewNow(a,t).b-crewNow(b,t).b;}).map(function(c){
+    var n=crewNow(c,t), left=n.b-t;
+    return '<div class="row">'+avatar(c)+'<div class="grow"><b>'+esc(c.name)+'</b><span class="muted t">'+esc(c.role)+' · '+esc(groupById(c.group).name)+'</span><span class="t small">'+(n.l.returnBooked?'<span class="muted">Return flight booked</span>':'<b>Return flight not booked</b>')+'</span></div><div style="text-align:right"><b>'+(n.o===t?'Leaving today':'Back '+esc(fmtDS(n.b)))+'</b><div class="muted small">'+(n.o===t?'Back '+esc(fmtDS(n.b)):plural(left,'day')+' to go')+'</div></div>'+btn('Extend or shorten','edit-leave','data-id="'+n.l.id+'"','sm')+'</div>';
+  }).join('');
+  var ev=upcomingEvents(t,60).slice(0,14).map(function(e){
+    var p=parts(e.n);
+    return '<div class="row"><div class="daybox"><b>'+p.d+'</b><small>'+MON[p.m]+'</small></div><div class="grow"><b>'+esc(e.c.name)+'</b><span class="muted t">'+(e.k==='to'?'Travel day home':e.k==='tb'?'Travel day back to the vessel':e.k==='out'?'Leave starts'+(e.l.travelOut===e.l.off?' · travel day':'')+' · flight '+(e.l.booked?'booked':'not booked'):'Back on the vessel'+(e.l.travelBack===e.l.back?' · travel day':'')+' · return flight '+(e.l.returnBooked?'booked':'not booked'))+' · '+esc(rel(e.n,t))+'</span></div><span class="tag">'+plural(leaveDays(e.l),'day')+'</span>'+btn('Edit','edit-leave','data-id="'+e.l.id+'"','sm ghost')+'</div>';
+  }).join('');
+  h+='<div class="cols" style="margin-bottom:16px"><section class="card"><h2>On leave now</h2>'+(nowList?'<div class="list" style="margin-top:12px">'+nowList+'</div>':'<p class="muted" style="margin-top:8px">Everyone is onboard.</p>')+'</section>'+
+     '<section class="card"><h2>Coming up</h2><p class="muted small" style="margin-top:2px">Next 60 days</p>'+(ev?'<div class="list" style="margin-top:12px">'+ev+'</div>':'<p class="muted" style="margin-top:8px">No departures or returns in the next 60 days.</p>')+'</section></div>';
+  var y=leaveYearOf(t);
+  h+='<section class="card"><div class="ch"><h2>Leave balances</h2><span class="muted small">Leave year '+esc(leaveYearLabel(y))+' ('+esc((function(r){return fmtS(r[0])+' '+parts(r[0]).y+' to '+fmtS(r[1])+' '+parts(r[1]).y;})(yearRange(y)))+') · days only count once leave starts</span></div><div class="bal" style="margin-top:12px">'+act.slice().sort(function(a,b){return state.settings.groups.map(function(g){return g.id;}).indexOf(a.group)-state.settings.groups.map(function(g){return g.id;}).indexOf(b.group)||(a.order-b.order)||byName(a,b);}).map(function(c){return balanceRow(c,y);}).join('')+'</div></section>';
+  return h;
+};
+function emptyWelcome(){
+  return '<div class="card welcome">'+LOGO+'<h1 class="pt">Crew leave tracker</h1><div class="actions">'+btn('Add first crew member','add-crew','','primary')+'</div></div>';
+}
+function upcomingEvents(t,span){
+  var ev=[];
+  state.leaves.forEach(function(l){
+    var c=crewById(l.crewId); if(!c||!c.active) return; var o=pd(l.off),b=pd(l.back);
+    if(o>=t&&o<=t+span) ev.push({n:o,k:'out',l:l,c:c});
+    if(b>=t&&b<=t+span) ev.push({n:b,k:'in',l:l,c:c});
+    var to=l.travelOut?pd(l.travelOut):null, tb=l.travelBack?pd(l.travelBack):null;
+    if(to!==null&&to!==o&&to>=t&&to<=t+span) ev.push({n:to,k:'to',l:l,c:c});
+    if(tb!==null&&tb!==b&&tb>=t&&tb<=t+span) ev.push({n:tb,k:'tb',l:l,c:c});
+  });
+  return ev.sort(function(a,b){return a.n-b.n||(a.k==='in'?-1:1);});
+}
+function groupHero(g,t){
+  var mem=membersOf(g.id); if(!mem.length) return '';
+  var awayM=mem.filter(function(m){return crewNow(m,t).away;});
+  if(g.pattern!=='rotation'||mem.length<2) return flexCard(g,mem,t);
+  var info=nextInfo(g,t); if(!info||!info.crew) return '';
+  var pills=mem.map(function(m){
+    var a=awayM.indexOf(m)>=0, n=info.crew.id===m.id;
+    return '<span class="opill'+(a?' away':'')+(n?' nx':'')+'" title="'+esc(m.name)+'">'+esc(m.role||firstName(m.name))+(a?' · away':'')+(n?' · next':'')+'</span>';
+  }).join('');
+  var tag=info.kind==='suggested'?'Suggested dates, not scheduled':(info.kind==='booked'?flightTag(info.leave):(info.leave&&info.leave.mode==='auto'?'Automatic dates':'Manual dates'));
+  var days=leaveDays({off:iso(info.off),back:iso(info.back)});
+  var ov=overlapNote(g,t,info);
+  var action=info.leave?btn('Edit this leave','edit-leave','data-id="'+info.leave.id+'"','on-dark sm'):btn('Plan this leave','plan-next','data-gid="'+g.id+'"','on-dark sm');
+  var h='<article class="hero"><header><h2>'+esc(g.name)+'</h2><span>'+(mem.length-awayM.length)+' of '+mem.length+' onboard</span></header><div class="order" aria-label="Rotation order">'+pills+'</div>'+
+    '<p class="lbl">Next to go</p><p class="who">'+esc(info.crew.name)+'</p><p class="role">'+esc(info.crew.role)+'</p>'+
+    '<div class="dates"><div><span>Leaves vessel</span><b>'+esc(fmtDS(info.off))+'</b></div><span class="arrow">'+ic('arrow')+'</span><div><span>Back on vessel</span><b>'+esc(fmtDS(info.back))+'</b></div></div>'+
+    '<div class="meta"><span>'+esc(rel(info.off,t))+'</span><span>·</span><span>'+plural(days,'leave day')+'</span><span class="tagd">'+tag+'</span></div>'+
+    '<div class="actions">'+action+btn('View in calendar','goto-cal','data-n="'+info.off+'"','line-dark sm')+btn('Open rotation','tab','data-tab="rotation"','line-dark sm')+'</div>';
+  if(ov) h+='<p class="foot">'+esc(ov)+'</p>';
+  else if(awayM.length) h+='<p class="foot">Away now: '+awayM.map(function(m){return esc(m.name)+' (back '+esc(fmtDS(crewNow(m,t).b))+')';}).join(', ')+'</p>';
+  return h+'</article>';
+}
+function flexCard(g,mem,t){
+  var y=leaveYearOf(t);
+  var rows=mem.map(function(c){
+    var b=balance(c,y), n=crewNow(c,t), nx=nextLeaveOf(c,t), st;
+    if(n.away) st='On leave · back '+fmtDS(n.b); else if(nx) st='Next: '+fmtS(pd(nx.off))+' to '+fmtS(pd(nx.back)); else st='No leave planned';
+    return '<div class="row">'+avatar(c)+'<div class="grow"><b>'+esc(c.name)+'</b><span class="muted t">'+esc(c.role)+' · '+st+'</span></div><span class="tag">'+(b.left<0?plural(-b.left,'day')+' over':plural(b.left,'day')+' left')+'</span>'+btn('Plan leave','add-leave','data-crew="'+c.id+'"','sm')+'</div>';
+  }).join('');
+  return '<article class="card"><div class="ch"><h2>'+esc(g.name)+'</h2><span class="muted small">'+(g.pattern==='rotation'?'Rotation starts when a second person is added':'Flexible leave, no fixed order')+'</span></div><div class="list wrap" style="margin-top:10px">'+rows+'</div></article>';
+}
+
+/* ---- calendar ---- */
+VIEWS.calendar=function(){
+  var c=ui.cal, t=todayN(); if(c.cur==null) c.cur=monthStart(t);
+  var p=parts(c.cur);
+  var h='<div class="page-head"><div><h1 class="pt">Calendar</h1><p class="muted">Who is off the vessel, and when they travel.</p></div><div class="actions">'+btn(ic('plus')+' Add leave','add-leave','','primary')+'</div></div>';
+  h+='<div class="cal-head"><div class="actions"><button class="btn sm" data-act="cal-prev" aria-label="Previous month">'+ic('left')+'</button><button class="btn sm" data-act="cal-next" aria-label="Next month">'+ic('right')+'</button><button class="btn sm" data-act="cal-today">Today</button></div>'+
+    '<h2>'+(c.mode==='month'?MONL[p.m]+' '+p.y:MON[p.m]+' '+p.y+' to '+MON[parts(addMonths(c.cur,11)).m]+' '+parts(addMonths(c.cur,11)).y)+'</h2>'+
+    '<div class="seg" role="group" aria-label="View"><button data-act="cal-mode" data-mode="month" aria-pressed="'+(c.mode==='month')+'">Month</button><button data-act="cal-mode" data-mode="year" aria-pressed="'+(c.mode==='year')+'">12 months</button></div>'+
+    '<div class="gf">'+state.settings.groups.filter(function(g){return state.crew.some(function(x){return x.group===g.id&&x.active;});}).map(function(g){return '<button data-act="cal-group" data-gid="'+g.id+'" aria-pressed="'+(!c.hidden[g.id])+'" style="--gc:'+g.color+'"><i></i>'+esc(g.name)+'</button>';}).join('')+'</div></div>';
+  h+=c.mode==='month'?monthGrid(t):timeline(t);
+  h+='<div class="legend"><span><i></i>On leave</span><span><i class="t"></i>Travel day (when added)</span><span><i class="p"></i>Flights not booked yet</span><span><i class="c"></i>Too many away at once</span></div>';
+  if(c.mode==='month'&&c.sel!=null) h+=dayDetail(c.sel,t);
+  return h;
+};
+function visibleLeaves(){
+  var hidden=ui.cal.hidden, gi=state.settings.groups.map(function(g){return g.id;});
+  return state.leaves.map(function(l){return {l:l,o:pd(l.off),b:pd(l.back),to:l.travelOut?pd(l.travelOut):null,tb:l.travelBack?pd(l.travelBack):null,c:crewById(l.crewId)};}).filter(function(x){return x.c&&x.c.active&&!hidden[x.c.group];})
+    .sort(function(a,b){return gi.indexOf(a.c.group)-gi.indexOf(b.c.group)||(a.c.order-b.c.order)||byName(a.c,b.c);});
+}
+function monthGrid(t){
+  var c=ui.cal, first=c.cur, off=parts(first).w, dim=parts(monthEnd(first)).d, weeks=Math.ceil((off+dim)/7), start=first-off, LN=visibleLeaves();
+  var gs=state.settings.groups.filter(function(g){return g.maxAway>0&&!c.hidden[g.id];});
+  var h='<div class="dow">'+DOWS.map(function(d){return '<div>'+d+'</div>';}).join('')+'</div><div class="cal-grid">';
+  for(var i=0;i<weeks*7;i++){
+    var n=start+i, pp=parts(n), inM=pp.m===parts(first).m;
+    var ents=LN.filter(function(x){return (n>=x.o&&n<=x.b)||x.to===n||x.tb===n;});
+    var clash=gs.some(function(g){return ents.filter(function(x){return x.c.group===g.id&&n>=x.o&&n<x.b;}).length>g.maxAway;});
+    var chips=ents.slice(0,3).map(function(x){
+      var k=n===x.o?'out':(n===x.b?'in':'leave'), tv=x.to===n||x.tb===n;
+      return '<span class="chip'+(tv?' travel':'')+(leaveStatus(x.l,t)==='planned'?' planned':'')+'" style="--gc:'+groupById(x.c.group).color+'" title="'+esc(x.c.name+(tv?(x.to===n?' travel day home':' travel day back to the vessel'):k==='out'?' leave starts':k==='in'?' back on the vessel':' on leave'))+'"><span class="nm">'+esc(firstName(x.c.name))+'</span>'+(tv?'<em>travel</em>':k==='out'?'<em>off</em>':k==='in'?'<em>back</em>':'')+'</span>';
+    }).join('');
+    h+='<div class="cell'+(inM?'':' other')+(n===t?' today':'')+(n===c.sel?' sel':'')+(clash?' clash':'')+'" data-act="cal-sel" data-n="'+n+'"><span class="dnum">'+pp.d+'</span>'+chips+(ents.length>3?'<div class="more">+'+(ents.length-3)+' more</div>':'')+'</div>';
+  }
+  return h+'</div>';
+}
+function dayDetail(n,t){
+  var LN=visibleLeaves().filter(function(x){return (n>=x.o&&n<=x.b)||x.to===n||x.tb===n;});
+  var h='<section class="card day-detail"><div class="ch"><h2>'+esc(fmtL(n))+'</h2>'+btn(ic('plus')+' Add leave from this day','add-leave','data-off="'+iso(n)+'"','sm')+'</div>';
+  var on=state.settings.groups.map(function(g){var m=membersOf(g.id);if(!m.length)return '';var a=awayInGroup(g.id,n).length;return '<span class="tag">'+esc(g.name)+': '+(m.length-a)+' of '+m.length+' onboard</span>';}).join(' ');
+  h+='<p style="margin:8px 0 10px;display:flex;gap:8px;flex-wrap:wrap">'+on+'</p>';
+  if(!LN.length) return h+'<p class="muted">Nobody is on leave or travelling on this day.</p></section>';
+  h+='<div class="list">'+LN.map(function(x){
+    var k=n===x.o?'out':(n===x.b?'in':'leave');
+    var bits=[]; if(x.to===n) bits.push('Travel day home'); if(x.tb===n) bits.push('Travel day back to the vessel');
+    if(k==='out') bits.push('Leave starts today'); else if(k==='in') bits.push('Back on the vessel today'); else if(n>x.o&&n<x.b) bits.push('On leave, back '+fmtDS(x.b));
+    var txt=bits.join(' · ');
+    return '<div class="row">'+avatar(x.c)+'<div class="grow"><b>'+esc(x.c.name)+'</b><span class="muted t">'+esc(x.c.role)+' · '+txt+'</span></div>'+btn('Edit','edit-leave','data-id="'+x.l.id+'"','sm')+'</div>';
+  }).join('')+'</div></section>';
+  return h;
+}
+function r1(x){return Math.round(x*10)/10;}
+var _mc=null;
+function textW(s){try{if(!_mc){_mc=document.createElement('canvas').getContext('2d');_mc.font='500 12px Barlow, Arial, sans-serif';}return _mc.measureText(s).width;}catch(e){return s.length*6.5;}}
+function timeline(t){
+  var c=ui.cal, start=c.cur, end=addMonths(start,12)-1, DAYS=end-start+1, avail=0;
+  try{var vw=document.getElementById('view'), vcs=getComputedStyle(vw);avail=vw.clientWidth-parseFloat(vcs.paddingLeft)-parseFloat(vcs.paddingRight);}catch(e){avail=0;}
+  var LABEL=(avail>0&&avail<640)?120:168, W=avail>0?Math.max(560,Math.floor(avail-LABEL-2)):DAYS*5, PPD=W/DAYS;
+  ui.cal.lastW=avail;
+  var conf=findConflicts().ids, hidden=c.hidden;
+  var mh='<div class="tl-row mh"><div class="tl-label"></div><div class="tl-track" style="width:'+W+'px">';
+  var grid='';
+  for(var k=0;k<12;k++){
+    var ms=addMonths(start,k), me=monthEnd(ms), pp=parts(ms);
+    mh+='<div class="tl-mon" style="left:'+r1((ms-start)*PPD)+'px;width:'+r1((me-ms+1)*PPD)+'px">'+MON[pp.m]+(pp.m===0||k===0?' '+pp.y:'')+'</div>';
+    grid+='<i style="left:'+r1((ms-start)*PPD)+'px"></i>';
+  }
+  mh+='</div></div>';
+  if(t>=start&&t<=end) grid+='<i class="today" style="left:'+r1((t-start)*PPD+PPD/2)+'px"></i>';
+  var rows='';
+  state.settings.groups.forEach(function(g){
+    var mem=membersOf(g.id); if(!mem.length||hidden[g.id]) return;
+    rows+='<div class="tl-row gh"><div class="tl-label" style="color:var(--ink)">'+esc(g.name)+'</div><div class="tl-track" style="width:'+W+'px"></div></div>';
+    mem.forEach(function(m){
+      var bars=leavesOfCrew(m.id).filter(function(l){return pd(l.back)>=start&&pd(l.off)<=end;}).map(function(l){
+        var o=pd(l.off), b=pd(l.back), s=Math.max(o,start), e=Math.min(b,end), left=r1((s-start)*PPD), w=r1((e-s+1)*PPD), st=leaveStatus(l,t), inner='', outer='';
+        [l.travelOut,l.travelBack].forEach(function(x){
+          if(!x) return; var d=pd(x); if(d<start||d>end) return;
+          if(d>=s&&d<=e) inner+='<i class="tr" style="left:'+r1((d-s)*PPD)+'px"></i>';
+          else outer+='<i class="tmark" style="--gc:'+g.color+';left:'+r1((d-start)*PPD)+'px;width:'+Math.max(4,r1(PPD))+'px" title="'+esc(m.name+': travel day '+fmtDS(d))+'"></i>';
+        });
+        var opts=[plural(leaveDays(l),'day')+' · '+fmtS(o)+' to '+fmtS(b),fmtS(o)+' – '+fmtS(b),fmtS(o),String(parts(o).d)], label='';
+        for(var q=0;q<opts.length;q++){if(textW(opts[q])+16<=w){label=opts[q];break;}}
+        return '<button class="bar'+(st==='done'?' past':'')+(st==='planned'?' planned':'')+(conf[l.id]?' clash':'')+'" style="--gc:'+g.color+';--ppd:'+r1(PPD)+'px;left:'+left+'px;width:'+w+'px" data-act="edit-leave" data-id="'+l.id+'" title="'+esc(m.name+': '+fmtDS(o)+' to '+fmtDS(b)+(travelTxt(l)?' · '+travelTxt(l):''))+'">'+inner+'<span style="position:relative">'+esc(label)+'</span></button>'+outer;
+      }).join('');
+      rows+='<div class="tl-row"><div class="tl-label">'+avatar(m,true)+'<span>'+esc(m.name)+'</span></div><div class="tl-track" style="width:'+W+'px">'+bars+'</div></div>';
+    });
+  });
+  if(!rows) rows='<div class="tl-row"><div class="tl-label muted">No crew shown</div></div>';
+  return '<div class="tl"><div class="tl-in" style="--lab:'+LABEL+'px;width:'+(W+LABEL)+'px"><div class="tl-grid" style="width:'+W+'px">'+grid+'</div>'+mh+rows+'</div></div>';
+}
+
+/* ---- rotation ---- */
+VIEWS.rotation=function(){
+  var t=todayN();
+  var h='<div class="page-head"><div><h1 class="pt">Rotation</h1><p class="muted">Leave order, who is next, and every leave period.</p></div><div class="actions">'+btn(ic('plus')+' Add leave','add-leave','','primary')+'</div></div>';
+  var gs=state.settings.groups.filter(function(g){return membersOf(g.id).length||leavesOfGroup(g.id).length;});
+  if(!gs.length) return h+emptyCard('Add crew first, then plan their leave here.');
+  return h+'<div class="stack">'+gs.map(function(g){return groupPanel(g,t);}).join('')+'</div>';
+};
+function groupPanel(g,t){
+  var mem=membersOf(g.id), rot=g.pattern==='rotation', info=rot?nextInfo(g,t):null;
+  var sub=rot?(mem.length<2?'Add a second person to start the automatic rotation · ':'')+'Automatic: each leave starts the day the previous crew member is back on board · up to '+(mem[0]?Math.max(1,Math.round(mem[0].allowance/(mem[0].blockDays||30))):3)+' leaves each per leave year'+(g.maxAway?' · '+g.maxAway+' away at a time':'')+(g.overlapEvery?' · then a month with everyone onboard before the order starts again':''):'Flexible: leave taken as and when';
+  var gl=leavesOfGroup(g.id).filter(function(l){var c=crewById(l.crewId);return c&&c.active;});
+  var manualFut=gl.filter(function(l){return pd(l.off)>t&&l.mode!=='auto'&&!l.booked&&!l.returnBooked;}).length;
+  var h='<section class="card"><div class="ch"><div><h2>'+esc(g.name)+'</h2><p class="muted small">'+esc(sub)+'</p></div><div class="actions">'+
+    (rot&&mem.length>1?(manualFut?btn('Recalculate all ('+manualFut+' manual)','recalc-all','data-gid="'+g.id+'"','sm'):'')+(gl.length?btn('Edit next leave','plan-next','data-gid="'+g.id+'"','sm primary'):btn('Plan first leave','plan-next','data-gid="'+g.id+'"','sm primary')):btn('Add leave','add-leave',(mem.length===1?'data-crew="'+mem[0].id+'"':''),'sm primary'))+'</div></div><div style="margin-top:8px">';
+  var y=leaveYearOf(t);
+  mem.forEach(function(m,i){
+    var n=crewNow(m,t), nx=nextLeaveOf(m,t), st;
+    if(n.away) st='<b>On leave</b>, back '+fmtDS(n.b); else if(nx) st='Next: '+fmtFrom(pd(nx.off),pd(nx.back))+' to '+fmtDS(pd(nx.back)); else st='No leave planned';
+    var isNext=info&&info.crew&&info.crew.id===m.id;
+    var b=balance(m,y);
+    h+='<div class="mrow">'+(rot?'<span class="pos">'+(i+1)+'</span>':'')+avatar(m)+'<div class="grow" style="flex:1 1 170px"><b>'+esc(m.name)+'</b><span class="muted t">'+esc(m.role)+' · '+(b.left<0?'<b style="color:var(--bad)">'+plural(-b.left,'day')+' over</b>':plural(b.left,'day')+' left')+'</span></div><div class="when">'+st+'</div>'+'<span class="slot">'+(isNext?'<span class="tag booked">Next to go</span>':'')+'</span>'+
+      (rot?'<div class="mv"><button data-act="mv" data-id="'+m.id+'" data-d="-1" aria-label="Move '+esc(m.name)+' earlier in the order" '+(i===0?'disabled':'')+'>'+ic('up')+'</button><button data-act="mv" data-id="'+m.id+'" data-d="1" aria-label="Move '+esc(m.name)+' later in the order" '+(i===mem.length-1?'disabled':'')+'>'+ic('down')+'</button></div>':'')+'</div>';
+  });
+  h+='</div>';
+  var ls=leavesOfGroup(g.id), base=ls.filter(function(l){return ui.rotAll||pd(l.back)>=t-45;});
+  var upcoming=base.filter(function(l){return pd(l.back)>t;}), LIMIT=6, more=!!ui.rotMore[g.id];
+  var shown=more?base:base.filter(function(l){return pd(l.back)<=t||upcoming.indexOf(l)<LIMIT;});
+  h+='<div class="ch" style="margin:16px 0 4px"><h3 style="margin:0">Leave periods</h3><label class="chk"><input type="checkbox" data-act="rot-all" '+(ui.rotAll?'checked':'')+'> Show past leave</label></div>';
+  if(!shown.length) h+='<p class="muted">No leave scheduled yet.'+(rot?' Plan the first leave (for example whoever is away now) and the rest of the rotation fills in automatically.':'')+'</p>';
+  else {
+    var maxB=null;
+    shown.forEach(function(l){
+      var lo=pd(l.off), lb=pd(l.back);
+      if(rot&&maxB!==null&&lo>maxB) h+=gapRow(g,maxB,lo,t);
+      h+=leaveRow(l,t);
+      if(maxB===null||lb>maxB) maxB=lb;
+    });
+    if(upcoming.length>LIMIT) h+='<div style="margin-top:10px">'+btn(more?'Show only the next '+LIMIT:'Show all '+upcoming.length+' upcoming leaves','rot-more','data-gid="'+g.id+'"','sm')+'</div>';
+  }
+  return h+'</section>';
+}
+function gapRow(g,from,to,t){
+  var now=t>=from&&t<to, label='All onboard'+(now?' now':'');
+  return '<div class="lrow gaprow"><div class="c-name"><span>'+(now?'<b>'+label+'</b>':label)+'</span></div><div class="c-dates">'+esc(fmtFrom(from,to))+' '+ic('arrow').replace('class="ic"','class="ic" style="width:14px;height:14px;vertical-align:-2px"')+' '+esc(fmtDS(to))+'</div><div class="c-days">'+(to-from)+'d</div><div class="c-stat"></div><div class="c-act"></div></div>';
+}
+function leaveRow(l,t){
+  var c=crewById(l.crewId); if(!c) return '';
+  var st=leaveStatus(l,t), o=pd(l.off), b=pd(l.back), d=leaveDays(l);
+  var over=c.leaveMode==='blocks'&&d>c.blockDays, clash=findConflicts().ids[l.id];
+  var tagCls=st==='planned'?'planned':st==='booked'?'booked':st==='away'?'away':'done';
+  var rotG=groupById(c.group).pattern==='rotation'&&membersOf(c.group).length>1, isManual=rotG&&st==='planned'&&l.mode!=='auto';
+  var tagTxt=st==='planned'?(rotG?(l.mode==='auto'?'Auto':'Manual'):'Planned'):st==='booked'?'Dates locked':st==='away'?'On leave':'Done';
+  return '<div class="lrow"><div class="c-name">'+avatar(c,true)+'<span>'+esc(c.name)+'</span></div><div class="c-dates">'+esc(fmtFrom(o,b))+' '+ic('arrow').replace('class="ic"','class="ic" style="width:14px;height:14px;vertical-align:-2px"')+' '+esc(fmtDS(b))+(l.note?' <span class="muted small">· '+esc(l.note)+'</span>':'')+(travelTxt(l)?'<span class="muted small" style="display:block">'+esc(travelTxt(l))+'</span>':'')+'</div>'+
+    '<div class="c-days">'+d+'d'+(over?' <span class="tag warn" title="Longer than the block">+'+(d-c.blockDays)+'</span>':'')+'</div><div class="c-stat"><span class="tag '+tagCls+'">'+tagTxt+'</span>'+(clash?' <span class="tag bad" title="Too many away">Clash</span>':'')+'</div>'+
+    '<div class="c-act">'+(st==='planned'||st==='booked'?'<label class="chk"><input type="checkbox" data-act="toggle-booked" data-id="'+l.id+'" '+(l.booked?'checked':'')+'> Flight booked</label>':'')+(st==='planned'||st==='booked'||st==='away'?'<label class="chk"><input type="checkbox" data-act="toggle-return" data-id="'+l.id+'" '+(l.returnBooked?'checked':'')+'> Return flight booked</label>':'')+(isManual?btn('Recalculate','lv-auto','data-id="'+l.id+'"','sm ghost'):'')+btn('Calendar','goto-cal','data-n="'+o+'"','sm ghost')+btn('Edit','edit-leave','data-id="'+l.id+'"','sm')+'</div></div>';
+}
+
+/* ---- crew ---- */
+VIEWS.crew=function(){
+  var t=todayN(), y=leaveYearOf(t);
+  var h='<div class="page-head"><div><h1 class="pt">Crew</h1><p class="muted">'+activeCrew().length+' on the roster</p></div><div class="actions">'+btn(ic('plus')+' Add crew','add-crew','','primary')+'</div></div>';
+  if(!state.crew.length) return h+emptyWelcome();
+  h+='<div class="stack">';
+  var known={};
+  state.settings.groups.forEach(function(g){
+    known[g.id]=1; var mem=membersOf(g.id); if(!mem.length) return;
+    h+='<section class="card"><div class="ch"><h2>'+esc(g.name)+'</h2><span class="muted small">'+(g.pattern==='rotation'?'Fixed rotation':'Flexible leave')+'</span></div><div class="list" style="margin-top:10px">'+mem.map(function(c){return crewRow(c,t,y);}).join('')+'</div></section>';
+  });
+  var orphans=state.crew.filter(function(c){return c.active&&!known[c.group];});
+  if(orphans.length) h+='<section class="card"><h2>Unassigned</h2><div class="list" style="margin-top:10px">'+orphans.map(function(c){return crewRow(c,t,y);}).join('')+'</div></section>';
+  var former=state.crew.filter(function(c){return !c.active;});
+  if(former.length){
+    h+='<section class="card"><div class="ch"><h2>Former crew</h2><label class="chk"><input type="checkbox" data-act="toggle-former" '+(ui.showFormer?'checked':'')+'> Show ('+former.length+')</label></div>';
+    if(ui.showFormer) h+='<div class="list" style="margin-top:10px">'+former.map(function(c){return '<div class="row">'+avatar(c)+'<div class="grow"><b>'+esc(c.name)+'</b><span class="muted t">'+esc(c.role)+(c.left?' · left '+esc(fmtS(pd(c.left))):'')+'</span></div>'+btn('Open','open-crew','data-id="'+c.id+'"','sm')+btn('Restore to crew','restore-crew','data-id="'+c.id+'"','sm')+'</div>';}).join('')+'</div>';
+    h+='</section>';
+  }
+  return h+'</div>';
+};
+function crewRow(c,t,y){
+  var n=crewNow(c,t), nx=nextLeaveOf(c,t), b=balance(c,y), st;
+  if(n.away) st='<b>On leave</b>, back '+fmtDS(n.b); else if(nx) st='Onboard · next leave '+fmtS(pd(nx.off)); else st='Onboard';
+  var over=b.used>b.allow;
+  return '<div class="row">'+avatar(c)+'<div class="grow" style="flex:1 1 180px"><b>'+esc(c.name)+'</b><span class="muted t">'+esc(c.role||'No role set')+' · '+st+'</span></div><div style="width:150px;flex:none"><div class="meter '+(over?'over':'')+'"><i class="u" style="width:'+Math.min(100,b.used/b.allow*100)+'%"></i></div><div class="muted small" style="margin-top:3px">'+(over?(b.used-b.allow)+' over':b.left+' of '+b.allow+' left')+'</div></div>'+btn('Open','open-crew','data-id="'+c.id+'"','sm')+'</div>';
+}
+
+/* ---- backup ---- */
+VIEWS.backup=function(){
+  var nC=state.crew.length, nL=state.leaves.length, last=state.settings.lastBackupAt;
+  var lastTxt=last?new Date(last).toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Never';
+  var h='<div class="page-head"><div><h1 class="pt">Backup</h1><p class="muted">Download everything as one file, or restore from a saved file. App version '+APP_VERSION+'.</p></div></div>'+backupBanner();
+  h+='<div class="stack">';
+  h+='<section class="card"><h2>Download a full backup</h2><p class="muted" style="margin:6px 0 12px">One file with every crew member, all leave records, rotation order and settings ('+plural(nC,'crew member')+', '+plural(nL,'leave record')+'). Last backup: <b>'+esc(lastTxt)+'</b>.</p><div class="actions">'+btn(ic('backup')+' Download backup file','backup-download','','primary')+btn(ui.textTools?'Hide the text option':'File not downloading?','text-tools','','sm ghost')+'</div>'+(ui.textTools?'<p class="muted small" style="margin:12px 0 8px">File downloads are blocked when the app is opened inside the Claude chat panel. From your GitHub link or the file on your laptop the button above saves a real file. As a last resort you can copy the backup as text:</p>'+btn('Show backup as text','backup-text','','sm'):'')+'</section>';
+  h+='<section class="card"><h2>Restore from a backup</h2><p class="muted" style="margin:6px 0 12px">Pick a backup file. You will see what is inside before anything is replaced.</p>'+
+    '<div class="actions"><label class="btn primary" for="restoreFile" role="button" tabindex="0" data-act="pick-file">Choose backup file</label><input type="file" id="restoreFile" accept=".json,application/json,text/plain"></div>'+
+    (ui.textTools?'<div class="f" style="margin-top:12px"><label for="restoreText">Or paste backup text</label><textarea id="restoreText" class="mono" placeholder="{ &quot;app&quot;: &quot;pelorus-crew-leave-tracker&quot;, … }"></textarea></div>'+btn('Check pasted text','restore-check-text','','sm'):'');
+  var r=ui.restore;
+  if(r){
+    if(!r.ok) h+='<div class="msg bad">'+esc(r.error)+'</div>';
+    else{
+      var m=r.meta;
+      h+='<div class="sumbox"><p><b>Backup checked. Nothing has been changed yet.</b></p><p>'+plural(m.crew,'crew member')+' · '+plural(m.leaves,'leave record')+(m.exportedAt?' · saved '+esc(new Date(m.exportedAt).toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})):'')+(m.backupVersion?' · backup version '+esc(m.backupVersion):'')+'</p>'+(m.orphans?'<p class="muted small">'+plural(m.orphans,'leave record')+' referred to missing crew and will be skipped.</p>':'')+'<div class="actions" style="margin-top:8px">'+btn('Replace everything with this backup','restore-confirm','','danger')+btn('Discard','restore-discard','','sm ghost')+'</div></div>';
+    }
+  }
+  h+='</section>';
+  var undoRaw=null, unsyncedRaw=null;
+  try{undoRaw=localStorage.getItem(LS_UNDO);unsyncedRaw=localStorage.getItem(LS_UNSYNCED);}catch(e){}
+  if(undoRaw){var u=null;try{u=JSON.parse(undoRaw);}catch(e){} if(u) h+='<section class="card"><h2>Undo last restore or clear</h2><p class="muted" style="margin:6px 0 12px">The data from before ('+esc(new Date(u.at).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+') is still kept on this device.</p><div class="actions">'+btn('Bring it back','undo-restore')+btn('Discard it','discard-undo','','sm ghost')+'</div></section>';}
+  if(unsyncedRaw){var us=null;try{us=JSON.parse(unsyncedRaw);}catch(e){} if(us) h+='<section class="card"><h2>Unsaved changes from this device</h2><p class="muted" style="margin:6px 0 12px">Newer data from another device replaced this device’s unsaved edits ('+esc(new Date(us.at).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'). You can bring those edits back.</p><div class="actions">'+btn('Bring them back','restore-unsynced')+btn('Discard','discard-unsynced','','sm ghost')+'</div></section>';}
+  var size=Math.round(JSON.stringify(state).length/1024);
+  var cloudTxt=cloud.fatal?'Not working ('+esc(cloud.fatal)+')':cloud.ref?(cloud.savedRev===state.rev?'Saved':'Saving…'):(cloud.off?'Not available in this view':'Connecting…');
+  h+='<section class="card"><div class="ch"><h2>Where your data is saved</h2>'+btn('Save now','save-now','','sm')+'</div><dl class="kv" style="margin-top:10px"><dt>Cloud copy</dt><dd>'+cloudTxt+(cloud.savedAt?' · '+esc(new Date(cloud.savedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})):'')+'</dd><dt>This browser</dt><dd>'+(ui.localOk?'Saved':'Not available. Browser storage is blocked')+'</dd><dt>Data size</dt><dd>'+size+' KB of about 250 KB'+(size>200?' · <b style="color:var(--bad)">nearly full, download a backup</b>':'')+'</dd><dt>Version</dt><dd>App '+APP_VERSION+' · data revision '+state.rev+'</dd></dl></section>';
+  h+='<section class="card"><h2>Data tools</h2><div class="actions" style="margin-top:10px">'+btn('Clear all data','clear-all','','danger')+'</div></section>';
+  return h+'</div>';
+};
+
+/* ================= render ================= */
+var TABS=[['overview','Overview'],['calendar','Calendar'],['rotation','Rotation'],['crew','Crew'],['backup','Backup']];
+function render(){
+  $('#brand').innerHTML=LOGO+'<div><b>Crew leave tracker</b>'+(state.settings.vessel?'<small>'+esc(state.settings.vessel)+'</small>':'')+'</div>';
+  $('#tabs').innerHTML=TABS.map(function(x){return '<button class="tab" data-act="tab" data-tab="'+x[0]+'" '+(ui.tab===x[0]?'aria-current="page"':'')+'>'+ic(x[0])+'<span>'+x[1]+'</span></button>';}).join('');
+  var g=$('.iconbtn'); if(g&&!g.firstChild) g.innerHTML=ic('gear');
+  var fn=VIEWS[ui.tab]||VIEWS.overview;
+  $('#view').innerHTML=fn();
+  paintStatus();
+}
+
+/* ================= modals ================= */
+function openModal(html,wide){
+  ui.lastFocus=document.activeElement; $('#toastRoot').innerHTML='';
+  $('#modalRoot').innerHTML='<div class="scrim" data-act="scrim"><div class="modal'+(wide?' wide':'')+'" role="dialog" aria-modal="true">'+html+'</div></div>';
+  var f=$('#modalRoot [autofocus]')||$('#modalRoot input:not([type=hidden]),#modalRoot select,#modalRoot textarea')||$('#modalRoot button');
+  if(f) f.focus();
+}
+function closeModal(){
+  $('#modalRoot').innerHTML=''; ui.modal=null;
+  if(ui.lastFocus&&ui.lastFocus.focus){try{ui.lastFocus.focus();}catch(e){}}
+  if(ui.needRender){ui.needRender=false;render();}
+}
+function modalHead(title,sub){return '<div class="mh"><div><h2>'+esc(title)+'</h2>'+(sub?'<p class="muted small">'+esc(sub)+'</p>':'')+'</div><button class="btn sm ghost" data-act="close-modal" aria-label="Close">✕</button></div>';}
+
+/* ---- leave editor ---- */
+function openLeave(o){
+  o=o||{}; var t=todayN();
+  var ex=o.id?state.leaves.filter(function(l){return l.id===o.id;})[0]:null;
+  var crewId=ex?ex.crewId:(o.crewId||'');
+  var off=ex?ex.off:(isIso(o.off)?o.off:iso(nextBoundary(t)));
+  var back=ex?ex.back:(isIso(o.back)?o.back:iso(pd(off)+autoLen(crewById(crewId))));
+  ui.modal={type:'leave',id:ex?ex.id:null,prevOff:off,mode:ex?(ex.mode||'manual'):'manual',wasAuto:!!(ex&&ex.mode==='auto'),changed:false,orig:ex?{crewId:ex.crewId,off:ex.off,back:ex.back}:null};
+  var exAutoFuture=!!(ex&&ex.mode==='auto'&&!ex.booked&&!ex.returnBooked&&pd(ex.off)>t&&groupById((crewById(ex.crewId)||{}).group).pattern==='rotation');
+  var opts='<option value="">Choose crew member…</option>'+state.settings.groups.map(function(g){
+    var m=membersOf(g.id); if(!m.length) return '';
+    return '<optgroup label="'+esc(g.name)+'">'+m.map(function(c){return '<option value="'+c.id+'"'+(c.id===crewId?' selected':'')+'>'+esc(c.name)+(c.role?' · '+esc(c.role):'')+'</option>';}).join('')+'</optgroup>';
+  }).join('');
+  if(ex){var cc=crewById(ex.crewId); if(cc&&!cc.active) opts+='<option value="'+cc.id+'" selected>'+esc(cc.name)+' (former)</option>';}
+  openModal(modalHead(ex?'Edit leave':'Plan leave','Set the day leave starts and the day they are back on the vessel. Travel days are optional and can be added at any time.')+
+    '<div class="f"><label for="lv-crew">Crew member</label><select id="lv-crew" data-live="1">'+opts+'</select></div>'+
+    '<div id="lv-mode-wrap"></div>'+
+    '<div class="g2"><div class="f"><label for="lv-off">Leave starts</label><input type="date" id="lv-off" value="'+off+'" data-live="1"></div>'+
+    '<div class="f"><label for="lv-back">Back on the vessel</label><input type="date" id="lv-back" value="'+back+'" data-live="1"></div></div>'+
+    '<div class="f" style="margin-top:-4px"><span class="lab">Set the return date</span><div class="qb">'+
+    btn('1 month','lv-set','data-kind="month"','sm')+btn('30 days','lv-set','data-kind="days" data-n="30"','sm')+btn('45 days','lv-set','data-kind="days" data-n="45"','sm')+btn('60 days','lv-set','data-kind="days" data-n="60"','sm')+
+    btn('Snap to 1st / last day','lv-set','data-kind="snap"','sm')+btn('−1 day','lv-set','data-kind="step" data-n="-1"','sm ghost')+btn('+1 day','lv-set','data-kind="step" data-n="1"','sm ghost')+btn('+7 days','lv-set','data-kind="step" data-n="7"','sm ghost')+'</div></div>'+
+    '<div class="f"><span class="lab">Travel days (optional, add or change at any time)</span><div class="g2" style="margin-top:4px">'+
+    '<div class="f" style="margin:0"><label for="lv-tout">Travel day home</label><div style="display:flex;gap:6px;align-items:center"><input type="date" id="lv-tout" value="'+((ex&&ex.travelOut)||'')+'">'+btn('Clear','lv-tclear','data-f="lv-tout"','sm ghost')+'</div></div>'+
+    '<div class="f" style="margin:0"><label for="lv-tback">Travel day back to the vessel</label><div style="display:flex;gap:6px;align-items:center"><input type="date" id="lv-tback" value="'+((ex&&ex.travelBack)||'')+'">'+btn('Clear','lv-tclear','data-f="lv-tback"','sm ghost')+'</div></div></div></div>'+
+    '<div id="lv-summary"></div>'+
+    '<div class="f"><label for="lv-note">Note (optional)</label><input type="text" id="lv-note" value="'+esc(ex?ex.note:'')+'" placeholder="e.g. extended for owner trip"></div>'+
+    '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:4px"><label class="chk"><input type="checkbox" id="lv-booked" data-live="1" '+(ex&&ex.booked?'checked':'')+'> Flight booked (going home)</label><label class="chk"><input type="checkbox" id="lv-return" data-live="1" '+(ex&&ex.returnBooked?'checked':'')+'> Return flight booked</label></div>'+
+    '<div class="mf">'+(ex&&!exAutoFuture?btn('Delete leave','lv-delete','','danger'):'')+'<span style="flex:1"></span>'+btn('Cancel','close-modal')+'<button class="btn primary" id="lv-save" data-act="lv-save">Save leave</button></div>');
+  leaveChanged();
+}
+function leaveDraft(){return {crewId:val('lv-crew'),off:val('lv-off'),back:val('lv-back'),tout:val('lv-tout'),tback:val('lv-tback')};}
+function followingLeaves(crewId,origBackIso,excludeId){
+  var c=crewById(crewId); if(!c) return []; var g=groupById(c.group); if(g.pattern!=='rotation') return [];
+  var t=todayN(), ob=pd(origBackIso), ids={}; state.crew.forEach(function(x){if(x.group===c.group&&x.active)ids[x.id]=1;});
+  return state.leaves.filter(function(l){return ids[l.crewId]&&l.id!==excludeId&&pd(l.off)>=ob&&pd(l.off)>t;});
+}
+function leaveChanged(){
+  var box=$('#lv-summary'), save=$('#lv-save'); if(!box) return;
+  var d=leaveDraft(), t=todayN();
+  var mw=$('#lv-mode-wrap'), mc=crewById(d.crewId), m=ui.modal;
+  m.showMode=!!(m.id&&m.orig&&pd(m.orig.off)>t&&mc&&groupById(mc.group).pattern==='rotation'&&!chk('lv-booked')&&!chk('lv-return'));
+  if(mw){
+    if(!m.showMode) mw.innerHTML='';
+    else {
+      var note=m.mode==='auto'?(m.wasAuto?'Leaves the day the previous crew member is back on board, and moves by itself if their dates change.':'Dates will be worked out when you save: leaves the day the previous crew member is back on board.'):(m.changed?'You changed the dates by hand, so they will be kept. Choose Automatic to recalculate them instead.':'Keeps the dates you set. Leave after this one follows on automatically.');
+      mw.innerHTML='<div class="f"><span class="lab">Dates</span><div><div class="seg" role="group" aria-label="How the dates are set"><button type="button" data-act="lv-mode" data-mode="auto" aria-pressed="'+(m.mode==='auto')+'">Automatic</button><button type="button" data-act="lv-mode" data-mode="manual" aria-pressed="'+(m.mode==='manual')+'">Keep manual dates</button></div></div><small>'+esc(note)+'</small></div>';
+    }
+  }
+  if(!d.crewId||!isIso(d.off)||!isIso(d.back)){box.innerHTML='<p class="muted small">Choose a crew member and both dates.</p>';if(save)save.disabled=true;return;}
+  var o=pd(d.off), b=pd(d.back), c=crewById(d.crewId);
+  if(b<=o){box.innerHTML='<div class="msg bad">The back-on-vessel date must be after the day leave starts.</div>';if(save)save.disabled=true;return;}
+  var tsB=isIso(state.settings.trackStart)?pd(state.settings.trackStart):null;
+  if(tsB!==null&&o<tsB){box.innerHTML='<div class="msg bad">Tracking starts '+esc(fmt(tsB))+'. Choose a leaving date on or after that.</div>';if(save)save.disabled=true;return;}
+  if(isIso(d.tout)&&isIso(d.tback)&&pd(d.tback)<pd(d.tout)){box.innerHTML='<div class="msg bad">The travel day back to the vessel cannot be before the travel day home.</div>';if(save)save.disabled=true;return;}
+  var tmp={id:ui.modal.id||'_new',crewId:d.crewId,off:d.off,back:d.back}, days=leaveDays(tmp), g=groupById(c.group), msgs='', block=false;
+  var own=leavesOfCrew(c.id).filter(function(l){return l.id!==ui.modal.id&&o<pd(l.back)&&pd(l.off)<b;});
+  if(own.length){msgs+='<div class="msg bad">This overlaps '+esc(c.name)+'’s other leave ('+esc(fmtS(pd(own[0].off)))+' to '+esc(fmtS(pd(own[0].back)))+').</div>';block=true;}
+  var yr=leaveYearOf(o), bal=balance(c,yr,{exclude:ui.modal.id,extra:tmp});
+  var nowBal=balance(c,yr), yrR=yearRange(yr);
+  var inYear=leavesOfCrew(c.id).filter(function(l){return l.id!==ui.modal.id;}).concat([tmp]).filter(function(l){var lo=pd(l.off);return lo>=yrR[0]&&lo<=yrR[1];}).sort(byOff);
+  var leaveNo=inYear.indexOf(tmp)+1;
+  if(bal.total>bal.allow) msgs+='<div class="msg warn">'+esc(c.name)+' would be '+plural(bal.total-bal.allow,'day')+' over the '+bal.allow+'-day allowance for '+esc(leaveYearLabel(yr))+'.</div>';
+  if(c.leaveMode==='blocks'&&days>c.blockDays) msgs+='<div class="msg warn">'+plural(days-c.blockDays,'day')+' longer than the '+c.blockDays+'-day block.</div>';
+  if(g.maxAway>0){
+    var keep=JSON.stringify(state), simId=ui.modal.id||'_new', clashNames=null;
+    try{
+      if(ui.modal.id){var lx=state.leaves.filter(function(x){return x.id===simId;})[0]; if(lx){lx.crewId=d.crewId;lx.off=d.off;lx.back=d.back;lx.booked=chk('lv-booked');lx.returnBooked=chk('lv-return');lx.mode=ui.modal.mode==='auto'?'auto':'manual';}}
+      else state.leaves.push({id:simId,crewId:d.crewId,off:d.off,back:d.back,note:'',booked:chk('lv-booked'),returnBooked:chk('lv-return'),mode:'manual',demo:false});
+      rebuildAll();
+      var me=state.leaves.filter(function(x){return x.id===simId;})[0];
+      if(me){
+        var mo=pd(me.off), mb=pd(me.back), gids={}; state.crew.forEach(function(x){if(x.group===c.group&&x.active&&x.id!==c.id)gids[x.id]=1;});
+        var oth=state.leaves.filter(function(l){return gids[l.crewId];});
+        for(var n=mo;n<mb&&!clashNames;n++){var act=oth.filter(function(l){return n>=pd(l.off)&&n<pd(l.back);}); if(act.length+1>g.maxAway) clashNames=act.map(function(l){return crewById(l.crewId).name;});}
+      }
+    }catch(e){}
+    state=normalize(JSON.parse(keep)); conflictCache={key:'',val:null};
+    if(clashNames) msgs+='<div class="msg warn">'+esc(g.name)+' allows '+g.maxAway+' away at a time. With these dates this overlaps '+esc(clashNames.join(', '))+'.</div>';
+  }
+  var shiftHtml='';
+  box.innerHTML='<div class="sumbox"><p><b>'+plural(days,'leave day')+'</b>'+(days>0?' <span class="muted">('+esc(fmtDS(chargedBounds(o,b)[0]))+' to '+esc(fmtDS(chargedBounds(o,b)[1]))+')</span>':'')+'</p><p class="muted small">Leave starts '+esc(fmtDS(o))+', back on the vessel '+esc(fmtDS(b))+'. '+(isIso(d.tout)||isIso(d.tback)?'Travel days: '+[isIso(d.tout)?'home '+fmtDS(pd(d.tout)):'',isIso(d.tback)?'back '+fmtDS(pd(d.tback)):''].filter(Boolean).join(', ')+'.':'No travel days added.')+'</p>'+(isIso(d.tout)&&Math.abs(pd(d.tout)-o)>3?'<div class="msg warn">The travel day home is '+plural(Math.abs(pd(d.tout)-o),'day')+' away from the start of leave. Check the date.</div>':'')+(isIso(d.tback)&&Math.abs(pd(d.tback)-b)>3?'<div class="msg warn">The travel day back is '+plural(Math.abs(pd(d.tback)-b),'day')+' away from the return date. Check the date.</div>':'')+'<p class="small" style="margin-top:6px">'+esc(firstName(c.name))+' has taken <b>'+nowBal.used+'</b> of '+nowBal.allow+' days so far in leave year '+esc(leaveYearLabel(yr))+'.'+(c.leaveMode==='blocks'&&leaveNo>0?(leaveNo>nowBal.blocks?' This would be leave '+leaveNo+' this year (the plan is '+nowBal.blocks+').':' This is leave '+leaveNo+' of '+nowBal.blocks+'.'):'')+'</p></div>'+msgs+shiftHtml;
+  if(save) save.disabled=block;
+}
+function saveLeave(){
+  var d=leaveDraft(); if(!d.crewId||!isIso(d.off)||!isIso(d.back)||pd(d.back)<=pd(d.off)) return;
+  var c=crewById(d.crewId); if(!c) return;
+  pushUndo();
+  var note=val('lv-note').trim(), booked=chk('lv-booked'), returnBooked=chk('lv-return');
+  if(ui.modal.id){
+    var l=state.leaves.filter(function(x){return x.id===ui.modal.id;})[0]; if(!l) return;
+    l.crewId=d.crewId;l.off=d.off;l.back=d.back;l.note=note;l.booked=booked;l.returnBooked=returnBooked;
+    l.travelOut=isIso(d.tout)?d.tout:null;l.travelBack=isIso(d.tback)?d.tback:null;
+    l.mode=ui.modal.mode==='auto'?'auto':'manual';
+  } else state.leaves.push({id:uid(),crewId:d.crewId,off:d.off,back:d.back,note:note,booked:booked,returnBooked:returnBooked,travelOut:isIso(d.tout)?d.tout:null,travelBack:isIso(d.tback)?d.tback:null,mode:'manual',demo:false});
+  closeModal(); commit(); toast('Leave saved',true,pd(d.off));
+}
+
+/* ---- plan generator ---- */
+function openPlan(gid){
+  var g=groupById(gid), t=todayN(); if(!membersOf(gid).length) return;
+  ui.modal={type:'plan',gid:gid};
+  var def=planDefaults(gid,true);
+  openModal(modalHead('Generate rotation plan: '+g.name,'Lays out the next leaves in order, one calendar month each, and adds them as planned leave you can still edit.')+
+    '<div class="g2"><div class="f"><label for="pl-crew">Start with</label><select id="pl-crew" data-live="1">'+membersOf(gid).map(function(m){return '<option value="'+m.id+'"'+(m.id===def.crew.id?' selected':'')+'>'+esc(m.name)+(m.role?' · '+esc(m.role):'')+'</option>';}).join('')+'</select></div>'+
+    '<div class="f"><label for="pl-start">First leaves vessel on</label><input type="date" id="pl-start" value="'+iso(def.start)+'" data-live="1"></div></div>'+
+    '<div class="g2"><div class="f"><label for="pl-months">Plan ahead</label><select id="pl-months" data-live="1"><option value="3">3 months</option><option value="6">6 months</option><option value="9">9 months</option><option value="12" selected>12 months</option></select></div>'+
+    '<div class="f"><span class="lab">Existing leave</span><label class="chk" style="min-height:40px"><input type="checkbox" id="pl-replace" data-live="1" data-reset="1" checked> Replace planned leave that is not booked</label></div></div>'+
+    '<div id="pl-preview"></div><div class="mf">'+btn('Cancel','close-modal')+'<button class="btn primary" id="pl-apply" data-act="pl-apply">Add to plan</button></div>',true);
+  planChanged();
+}
+function planDefaults(gid,replace){
+  var t=todayN(), ls=leavesOfGroup(gid).filter(function(l){return !replace||pd(l.off)<=t||l.booked;});
+  return planStartFor(gid,ls,t);
+}
+function planCompute(){
+  var gid=ui.modal.gid, t=todayN(), replace=chk('pl-replace'), start=val('pl-start');
+  if(!isIso(start)) return null;
+  var sN=pd(start), anchor=leavesOfGroup(gid).filter(function(l){return !replace||pd(l.off)<=t||l.booked;}), chain=0;
+  var mem=membersOf(gid), ids={}; mem.forEach(function(m){ids[m.id]=1;});
+  var own=anchor.filter(function(l){return ids[l.crewId];}).sort(byOff);
+  if(own.length&&sN-pd(own[own.length-1].back)<=7) chain=chainCount(own);
+  var items=buildPlan(gid,val('pl-crew'),sN,chain,parseInt(val('pl-months'))||12);
+  var remove=replace?leavesOfGroup(gid).filter(function(l){return pd(l.off)>=sN&&pd(l.off)>t&&!l.booked;}):[];
+  return {items:items,remove:remove,startN:sN};
+}
+function planChanged(el){
+  var box=$('#pl-preview'); if(!box) return;
+  if(el&&el.id==='pl-replace'){var d=planDefaults(ui.modal.gid,chk('pl-replace')); if(d){setVal('pl-start',iso(d.start));setVal('pl-crew',d.crew.id);}}
+  var p=planCompute(), apply=$('#pl-apply');
+  if(!p){box.innerHTML='<p class="muted">Choose a start date.</p>';if(apply)apply.disabled=true;return;}
+  var rows=p.items.map(function(it){
+    if(it.gap) return '<tr class="gap"><td colspan="3">Overlap month: all onboard, '+esc(fmtS(it.from))+' to '+esc(fmtS(it.to))+'</td></tr>';
+    var c=crewById(it.crewId); return '<tr><td>'+esc(c.name)+'</td><td>'+esc(fmtDS(pd(it.off)))+'</td><td>'+esc(fmtDS(pd(it.back)))+'</td></tr>';
+  }).join('');
+  var n=p.items.filter(function(i){return !i.gap;}).length;
+  box.innerHTML=(p.remove.length?'<div class="msg info">'+plural(p.remove.length,'planned leave')+' from this date will be replaced.</div>':'')+'<table class="ptable"><thead><tr><th>Crew</th><th>Leaves vessel</th><th>Back on vessel</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  if(apply){apply.disabled=!n;apply.textContent='Add '+plural(n,'leave')+' to plan';}
+}
+function applyPlan(){
+  var p=planCompute(); if(!p) return; pushUndo();
+  var rm={}; p.remove.forEach(function(l){rm[l.id]=1;});
+  state.leaves=state.leaves.filter(function(l){return !rm[l.id];});
+  var n=0; p.items.forEach(function(it){if(it.gap)return; state.leaves.push({id:uid(),crewId:it.crewId,off:it.off,back:it.back,note:'',booked:false,demo:false});n++;});
+  closeModal(); commit(); toast('Added '+plural(n,'leave')+' to the plan',true,n?pd(p.items.filter(function(i){return !i.gap;})[0].off):null);
+}
+
+/* ---- crew editor ---- */
+function slotOptions(gid,selfId,pos){
+  var others=membersOf(gid).filter(function(m){return m.id!==selfId;});
+  var o='<option value="1"'+(pos<=1?' selected':'')+'>First in the rotation</option>';
+  others.forEach(function(m,i){var v=i+2;o+='<option value="'+v+'"'+(pos===v?' selected':'')+'>After '+esc(m.name)+(m.role?' ('+esc(m.role)+')':'')+'</option>';});
+  return o;
+}
+function slotDefault(gid){var c=ui.modal&&ui.modal.id?crewById(ui.modal.id):null;if(c&&c.active&&c.group===gid)return c.order;return membersOf(gid).filter(function(m){return !c||m.id!==c.id;}).length+1;}
+function rolesFor(gid){return DEFAULT_ROLES[gid]||[];}
+function roleFieldHtml(gid,current){
+  var list=rolesFor(gid);
+  if(!list.length) return '<input type="text" id="cf-role" value="'+esc(current)+'" placeholder="e.g. Bosun" autocomplete="off">';
+  var opts=list.slice(); if(current&&opts.indexOf(current)<0) opts.push(current);
+  return '<select id="cf-role"><option value="">Choose role…</option>'+opts.map(function(r){return '<option value="'+esc(r)+'"'+(r===current?' selected':'')+'>'+esc(r)+(list.indexOf(r)<0?' (current)':'')+'</option>';}).join('')+'</select>';
+}
+function openCrewForm(id){
+  var c=id?crewById(id):null; ui.modal={type:'crew',id:c?c.id:null};
+  var g0=c?c.group:state.settings.groups[0].id, gr=groupById(g0);
+  var mode=c?c.leaveMode:(gr.pattern==='flexible'?'flexible':'blocks');
+  var pos=c&&c.active?c.order:(membersOf(g0).length+1);
+  openModal(modalHead(c?'Edit crew member':'Add crew member')+
+    '<div class="f"><label for="cf-name">Full name</label><input type="text" id="cf-name" value="'+esc(c?c.name:'')+'" autocomplete="off" autofocus></div>'+
+    '<div class="g2"><div class="f"><label for="cf-role">Role</label><div id="cf-role-wrap">'+roleFieldHtml(g0,c?c.role:'')+'</div></div>'+
+    '<div class="f"><label for="cf-group">Department</label><select id="cf-group" data-live="1">'+state.settings.groups.map(function(g){return '<option value="'+g.id+'"'+(g.id===g0?' selected':'')+'>'+esc(g.name)+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="f" id="cf-pos-wrap"><label for="cf-pos">Leave rotation</label><select id="cf-pos">'+slotOptions(g0,c?c.id:null,pos)+'</select><small>They go on leave automatically on the day the person before them is back on board.</small></div>'+
+    '<div class="g2"><div class="f"><label for="cf-mode">Leave type</label><select id="cf-mode" data-live="1"><option value="blocks"'+(mode==='blocks'?' selected':'')+'>Fixed blocks (e.g. 3 × 30 days)</option><option value="flexible"'+(mode==='flexible'?' selected':'')+'>Flexible (any lengths)</option></select></div>'+
+    '<div class="f"><label for="cf-allow">Leave days per year</label><input type="number" id="cf-allow" min="1" value="'+(c?c.allowance:state.settings.allowance)+'"></div></div>'+
+    '<div class="f" id="cf-block-wrap"><label for="cf-block">Days in each block</label><input type="number" id="cf-block" min="1" value="'+(c?c.blockDays:state.settings.blockDays)+'"><small id="cf-block-note"></small></div>'+
+    '<div class="f"><label for="cf-home">Repatriation airport</label><input type="text" id="cf-home" value="'+esc(c?c.home:'')+'" autocomplete="off"></div>'+
+    '<div class="f"><label for="cf-notes">Notes</label><textarea id="cf-notes">'+esc(c?c.notes:'')+'</textarea></div>'+
+    '<div id="cf-err"></div><div class="mf">'+btn('Cancel','close-modal')+'<button class="btn primary" data-act="crew-save">'+(c?'Save changes':'Add crew member')+'</button></div>');
+  crewFormChanged();
+}
+function crewFormChanged(el){
+  var gid=val('cf-group');
+  if(el&&el.id==='cf-group'){
+    var wrap=$('#cf-role-wrap'), keep=val('cf-role');
+    if(wrap) wrap.innerHTML=roleFieldHtml(gid,rolesFor(gid).indexOf(keep)>=0?keep:'');
+    var ps=$('#cf-pos'); if(ps) ps.innerHTML=slotOptions(gid,ui.modal.id,slotDefault(gid));
+    if(!ui.modal.id) setVal('cf-mode',groupById(gid).pattern==='flexible'?'flexible':'blocks');
+  }
+  var g=groupById(gid), pw=$('#cf-pos-wrap'), bw=$('#cf-block-wrap');
+  if(pw) pw.style.display=g.pattern==='rotation'?'':'none';
+  if(bw) bw.style.display=val('cf-mode')==='blocks'?'':'none';
+  var note=$('#cf-block-note'), a=parseInt(val('cf-allow'))||0, b=parseInt(val('cf-block'))||0;
+  if(note) note.textContent=b?(a/b===Math.round(a/b)?a+' days is '+(a/b)+(a/b===1?' block':' blocks')+' per year.':a+' days does not divide evenly into '+b+'-day blocks.'):'';
+}
+function saveCrew(){
+  var name=val('cf-name').trim(), err=$('#cf-err');
+  if(!name){err.innerHTML='<div class="msg bad">Enter a name.</div>';$('#cf-name').focus();return;}
+  var allow=parseInt(val('cf-allow')), block=parseInt(val('cf-block'));
+  if(!(allow>0)||allow>366){err.innerHTML='<div class="msg bad">Leave days per year must be between 1 and 366.</div>';return;}
+  var mode=val('cf-mode'); if(mode==='blocks'&&(!(block>0)||block>allow)){err.innerHTML='<div class="msg bad">Days in each block must be between 1 and the leave days per year.</div>';return;}
+  var gid=val('cf-group'), g=groupById(gid), c;
+  pushUndo();
+  if(ui.modal.id){
+    c=crewById(ui.modal.id); var og=c.group; c.group=gid;
+    if(og!==gid) renumber(og);
+  } else {c={id:uid(),active:true,order:99,left:null,demo:false};state.crew.push(c);c.group=gid;}
+  c.name=name;c.role=val('cf-role').trim();c.leaveMode=mode;c.allowance=allow;c.blockDays=mode==='blocks'?block:(c.blockDays||30);
+  delete c.phone;delete c.email;c.home=val('cf-home').trim();c.notes=val('cf-notes').trim();
+  if(g.pattern==='rotation') placeAt(c,val('cf-pos')); else renumber(gid);
+  var wasNew=!ui.modal.id; closeModal(); commit(); toast(wasNew?name+' added':'Saved '+name,true);
+}
+function openProfile(id,year){
+  var c=crewById(id); if(!c) return; var t=todayN(); year=year==null?leaveYearOf(t):year;
+  ui.modal={type:'profile',id:id,year:year};
+  var g=groupById(c.group), b=balance(c,year), ls=leavesOfCrew(c.id).slice().reverse();
+  var det=[['Department',g.name],['Role',c.role||'Not set'],['Leave',c.leaveMode==='blocks'?c.allowance+' days a year in '+c.blockDays+'-day blocks':c.allowance+' days a year, flexible'],['Repatriation airport',c.home||'Not set'],['Notes',c.notes||'None']];
+  if(g.pattern==='rotation'&&c.active){var mm=membersOf(c.group),ix=mm.indexOf(c),pv=mm.length>1?mm[(ix-1+mm.length)%mm.length]:null;det.splice(1,0,['Leave rotation',pv?'Goes after '+pv.name+(pv.role?' ('+pv.role+')':'')+(ix===0?' · first in the order':''):'Only person in this rotation']);}
+  openModal('<div class="mh"><div style="display:flex;gap:12px;align-items:center">'+avatar(c)+'<div><h2>'+esc(c.name)+'</h2><p class="muted small">'+esc(c.role||'No role')+' · '+esc(g.name)+(c.active?'':' · former crew')+'</p></div></div><button class="btn sm ghost" data-act="close-modal" aria-label="Close">✕</button></div>'+
+    '<dl class="kv">'+det.map(function(d){return '<dt>'+esc(d[0])+'</dt><dd>'+esc(d[1])+'</dd>';}).join('')+'</dl>'+
+    '<div class="ch" style="margin:18px 0 8px"><h3 style="margin:0">Leave year '+esc(leaveYearLabel(year))+'</h3><div class="actions"><button class="btn sm" data-act="prof-year" data-d="-1" aria-label="Previous leave year">'+ic('left')+'</button><button class="btn sm" data-act="prof-year" data-d="1" aria-label="Next leave year">'+ic('right')+'</button></div></div>'+balanceRow(c,year)+
+    '<div class="ch" style="margin:18px 0 4px"><h3 style="margin:0">Leave history</h3>'+(c.active?btn(ic('plus')+' Plan leave','add-leave','data-crew="'+c.id+'"','sm'):'')+'</div>'+
+    (ls.length?ls.map(function(l){return leaveRow(l,t);}).join(''):'<p class="muted">No leave recorded yet.</p>')+
+    '<div class="mf">'+(c.active?btn('Remove from crew','crew-remove','data-id="'+c.id+'"','danger'):btn('Delete permanently','crew-remove','data-id="'+c.id+'"','danger'))+'<span style="flex:1"></span>'+btn('Edit details','edit-crew','data-id="'+c.id+'"','primary')+'</div>',true);
+}
+function openRemove(id){
+  var c=crewById(id); if(!c) return; var t=todayN();
+  var fut=state.leaves.filter(function(l){return l.crewId===id&&pd(l.off)>t;}).length, all=state.leaves.filter(function(l){return l.crewId===id;}).length;
+  ui.modal={type:'remove',id:id};
+  openModal(modalHead('Remove '+c.name)+
+    (c.active?'<label class="radio"><input type="radio" name="rm" value="archive" checked><span><b>Take off the crew list, keep their history</b><br><span class="muted small">They leave the rotation and calendar. Past leave is kept'+(fut?', and their '+plural(fut,'future leave')+' will be removed':'')+'. You can restore them later.</span></span></label>':'')+
+    '<label class="radio"><input type="radio" name="rm" value="delete" '+(c.active?'':'checked')+'><span><b>Delete permanently</b><br><span class="muted small">Removes '+esc(c.name)+' and all '+plural(all,'leave record')+'. This can only be undone straight afterwards.</span></span></label>'+
+    '<div class="mf">'+btn('Cancel','close-modal')+btn('Remove','remove-go','','danger solid')+'</div>');
+}
+function removeCrew(){
+  var c=crewById(ui.modal.id); if(!c) return; var mode=($('input[name=rm]:checked')||{}).value||'archive', t=todayN(), gid=c.group, name=c.name;
+  pushUndo();
+  if(mode==='archive'&&c.active){
+    c.active=false; c.left=iso(t);
+    state.leaves=state.leaves.filter(function(l){return !(l.crewId===c.id&&pd(l.off)>t);});
+  } else {
+    state.crew=state.crew.filter(function(x){return x.id!==c.id;});
+    state.leaves=state.leaves.filter(function(l){return l.crewId!==c.id;});
+  }
+  renumber(gid); closeModal(); commit(); toast(name+(mode==='archive'&&c?' removed from the crew list':' deleted'),true);
+}
+
+/* ---- settings ---- */
+function openSettings(){
+  var s=state.settings; ui.modal={type:'settings',groups:s.groups.map(function(g){return Object.assign({},g);})};
+  renderSettings();
+}
+function renderSettings(){
+  var s=Object.assign({},state.settings,ui.modal.top||{}), gs=ui.modal.groups;
+  var inUse=function(id){return state.crew.some(function(c){return c.group===id;});};
+  openModal(modalHead('Settings')+
+    '<div class="f"><label for="st-vessel">Vessel name (shown in the header)</label><input type="text" id="st-vessel" value="'+esc(s.vessel)+'" placeholder="Optional"></div>'+
+    '<div class="f"><label for="st-track">Tracking starts</label><input type="date" id="st-track" value="'+esc(s.trackStart||'')+'"><small>Leave before this date is not counted against anyone’s allowance.</small></div>'+
+    '<div class="g2"><div class="f"><label for="st-year">Leave year starts</label><select id="st-year">'+MONL.map(function(m,i){return '<option value="'+(i+1)+'"'+(s.yearStartMonth===i+1?' selected':'')+'>1 '+m+'</option>';}).join('')+'</select></div>'+
+    '<div class="f"><label for="st-allow">Default leave days per year</label><input type="number" id="st-allow" min="1" value="'+s.allowance+'"></div></div>'+
+    '<div class="g2"><div class="f"><label for="st-block">Default block length (days)</label><input type="number" id="st-block" min="1" value="'+s.blockDays+'"></div>'+
+    '<div class="f"><label for="st-travel">How leave days are counted</label><select id="st-travel"><option value="away"'+(s.dayCount==='away'?' selected':'')+'>Return date minus leaving date (1 Dec to 31 Dec = 30)</option><option value="between"'+(s.dayCount==='between'?' selected':'')+'>Only the days in between (1 Dec to 31 Dec = 29)</option><option value="inclusive"'+(s.dayCount==='inclusive'?' selected':'')+'>Both dates included (1 Dec to 31 Dec = 31)</option></select></div></div>'+
+    '<h3 style="margin-top:8px">Departments</h3><p class="muted small" style="margin-bottom:8px">A rotation follows a fixed order. “Away at a time” flags clashes; “Month all onboard” adds a month with everyone onboard after the last person in the order, before it starts again.</p>'+
+    gs.map(function(g,i){return '<div class="sumbox" style="margin-bottom:8px"><div class="g2"><div class="f"><label>Name</label><input type="text" data-sg="name" data-i="'+i+'" value="'+esc(g.name)+'"></div><div class="f"><label>Pattern</label><select data-sg="pattern" data-i="'+i+'"><option value="rotation"'+(g.pattern==='rotation'?' selected':'')+'>Rotation (fixed order)</option><option value="flexible"'+(g.pattern==='flexible'?' selected':'')+'>Flexible (no order)</option></select></div></div>'+
+      '<div class="g2"><div class="f"><label>Away at a time (0 = no limit)</label><input type="number" min="0" data-sg="maxAway" data-i="'+i+'" value="'+g.maxAway+'"></div><div class="f"><label>Month all onboard</label><select data-sg="overlapEvery" data-i="'+i+'"><option value="0"'+(g.overlapEvery?'':' selected')+'>No</option><option value="1"'+(g.overlapEvery?' selected':'')+'>Yes, after the last person in the order</option></select></div></div>'+
+      '<div class="actions">'+(inUse(g.id)||gs.length<2?'<span class="muted small">Has crew, cannot be removed</span>':btn('Remove department','sg-del','data-i="'+i+'"','sm danger'))+'</div></div>';}).join('')+
+    btn(ic('plus')+' Add department','sg-add','','sm')+
+    '<div id="st-err"></div><div class="mf">'+btn('Cancel','close-modal')+'<button class="btn primary" data-act="settings-save">Save settings</button></div>',true);
+}
+function readSettingsDraft(){
+  var gs=ui.modal.groups;
+  if(document.getElementById('st-vessel')) ui.modal.top={vessel:val('st-vessel'),trackStart:val('st-track')||state.settings.trackStart,yearStartMonth:parseInt(val('st-year'))||state.settings.yearStartMonth,allowance:parseInt(val('st-allow'))||state.settings.allowance,blockDays:parseInt(val('st-block'))||state.settings.blockDays,dayCount:val('st-travel')||state.settings.dayCount};
+  document.querySelectorAll('[data-sg]').forEach(function(el){
+    var g=gs[+el.dataset.i]; if(!g) return; var k=el.dataset.sg;
+    if(k==='name') g.name=el.value; else if(k==='pattern') g.pattern=el.value; else g[k]=Math.max(0,parseInt(el.value)||0);
+  });
+}
+function saveSettings(){
+  readSettingsDraft(); var gs=ui.modal.groups;
+  if(gs.some(function(g){return !g.name.trim();})){$('#st-err').innerHTML='<div class="msg bad">Every department needs a name.</div>';return;}
+  var nt=val('st-track');
+  if(isIso(nt)&&nt!==state.settings.trackStart){
+    var cut=state.leaves.filter(function(l){return l.off<nt;}).length;
+    if(cut&&ui.modal.confirmTrack!==nt){ui.modal.confirmTrack=nt;$('#st-err').innerHTML='<div class="msg bad">Moving the tracking start to '+esc(fmt(pd(nt)))+' will permanently delete '+plural(cut,'leave record')+' that start before that date. Click Save settings again to confirm, or Cancel.</div>';return;}
+  }
+  pushUndo(); var s=state.settings;
+  s.vessel=val('st-vessel').trim(); if(isIso(nt)){s.trackStart=nt;state.leaves=state.leaves.filter(function(l){return l.off>=nt;});} s.yearStartMonth=parseInt(val('st-year'))||1; s.allowance=parseInt(val('st-allow'))||90; s.blockDays=parseInt(val('st-block'))||30; s.dayCount=val('st-travel')||'away';
+  s.groups=gs.map(function(g,i){return {id:g.id,name:g.name.trim(),pattern:g.pattern,maxAway:g.maxAway,overlapEvery:g.overlapEvery,color:g.color||PALETTE[i%PALETTE.length]};});
+  closeModal(); commit(); toast('Settings saved',true);
+}
+
+/* ================= backup / restore ================= */
+function makeBackup(){return {app:APP_ID,backupVersion:1,appVersion:APP_VERSION,schema:SCHEMA,exportedAt:new Date().toISOString(),counts:{crew:state.crew.length,leaves:state.leaves.length},data:state};}
+function markBackup(){state.settings.lastBackupAt=new Date().toISOString();commit();}
+function saveBlobFile(name,json){
+  try{
+    var blob=new Blob([json],{type:'application/json'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=name; a.style.display='none'; document.body.appendChild(a); a.click();
+    setTimeout(function(){try{URL.revokeObjectURL(url);a.remove();}catch(e){}},2000);
+    return true;
+  }catch(e){return false;}
+}
+function downloadBackup(){
+  var json=JSON.stringify(makeBackup(),null,2), name='Pelorus-Leave-Tracker_backup_'+stamp()+'.json';
+  var framed=(function(){try{return window.self!==window.top;}catch(e){return true;}})();
+  var fallback=function(why){
+    var sent=saveBlobFile(name,json);
+    if(sent&&!framed){markBackup();toast('Backup file downloaded: '+name+'. Move it into your Dropbox folder.');return;}
+    ui.textTools=true;
+    showBackupText(json,'A file could not be saved from here'+(why?' ('+why+')':'')+'. This happens when the app is opened inside the Claude chat panel, which blocks downloads. Open the app from your GitHub link or the file on your laptop and the same button saves a real file. For now you can copy the text below.');
+  };
+  var p=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);
+  p.then(function(dl){
+    if(!dl){fallback('');return;}
+    dl.save({filename:name,data:json}).then(function(){markBackup();toast('Backup saved as '+name);},function(e){
+      if(e&&e.code==='declined'){toast('Backup cancelled. Nothing was saved.');}
+      else fallback('reason: '+((e&&e.code)||'unknown'));
+    });
+  },function(){fallback('');});
+}
+function showBackupText(json,why){
+  json=json||JSON.stringify(makeBackup(),null,2); ui.modal={type:'text'};
+  openModal(modalHead('Backup as text',why||'Copy this into a file named something.json, or paste it back under Restore.')+'<textarea id="bk-text" class="mono" readonly style="min-height:220px">'+esc(json)+'</textarea><div class="mf">'+btn('Close','close-modal')+btn('Copy text','copy-text','','primary')+'</div>',true);
+}
+function copyText(){
+  var ta=$('#bk-text'); if(!ta) return; ta.focus(); ta.select();
+  var ok=false; try{ok=document.execCommand('copy');}catch(e){}
+  if(!ok&&navigator.clipboard){navigator.clipboard.writeText(ta.value).then(function(){toast('Copied');markBackup();},function(){toast('Select the text and copy it manually.');});return;}
+  toast(ok?'Copied':'Select the text and copy it manually.'); if(ok) markBackup();
+}
+function parseBackup(text){
+  var o; try{o=JSON.parse(text);}catch(e){return {ok:false,error:'That is not a valid backup. Choose a file saved by this app.'};}
+  var d=o&&o.app===APP_ID?o.data:(o&&Array.isArray(o.crew)&&Array.isArray(o.leaves)?o:null);
+  if(!d||!Array.isArray(d.crew)||!Array.isArray(d.leaves)) return {ok:false,error:'This file does not look like a crew leave tracker backup.'};
+  if((o.schema||d.schema||1)>SCHEMA) return {ok:false,error:'This backup was made by a newer version of the app.'};
+  var st=normalize(d), ids={}; st.crew.forEach(function(c){ids[c.id]=1;});
+  var orphans=st.leaves.filter(function(l){return !ids[l.crewId];}).length; st.leaves=st.leaves.filter(function(l){return ids[l.crewId];});
+  return {ok:true,state:st,meta:{exportedAt:o.exportedAt||null,backupVersion:o.backupVersion||null,crew:st.crew.length,leaves:st.leaves.length,orphans:orphans}};
+}
+function stashForUndo(){try{localStorage.setItem(LS_UNDO,JSON.stringify({at:new Date().toISOString(),json:JSON.stringify(state)}));}catch(e){}}
+function replaceState(ns){var rev=Math.max(state.rev,ns.rev||0);state=ns;state.rev=rev;commit();}
+function openRestoreConfirm(){
+  var r=ui.restore; if(!r||!r.ok) return; ui.modal={type:'restore'};
+  openModal(modalHead('Replace everything?')+'<p>All current crew and leave records ('+plural(state.crew.length,'crew member')+', '+plural(state.leaves.length,'leave record')+') will be replaced by the backup ('+plural(r.meta.crew,'crew member')+', '+plural(r.meta.leaves,'leave record')+').</p><p class="muted small" style="margin-top:8px">The current data is kept on this device so you can undo this from the Backup page.</p><div class="mf">'+btn('Cancel','close-modal')+btn('Replace all data','restore-go','','danger solid')+'</div>');
+}
+function readFile(file){
+  var fr=new FileReader();
+  fr.onload=function(){ui.restore=parseBackup(String(fr.result||''));render();};
+  fr.onerror=function(){ui.restore={ok:false,error:'The file could not be read. Try again, or paste its text instead.'};render();};
+  fr.readAsText(file);
+}
+
+
+/* ================= events ================= */
+var H={};
+H['tab']=function(el){ui.tab=el.dataset.tab;try{history.replaceState(null,'','#'+ui.tab);}catch(e){} render();window.scrollTo(0,0);};
+H['close-modal']=closeModal;
+H['scrim']=function(el,e){if(e.target===el)closeModal();};
+H['undo']=undo;
+H['open-settings']=openSettings;
+H['cal-prev']=function(){ui.cal.cur=addMonths(ui.cal.cur,-1);render();};
+H['cal-next']=function(){ui.cal.cur=addMonths(ui.cal.cur,1);render();};
+H['cal-today']=function(){var t=todayN();ui.cal.cur=monthStart(t);ui.cal.sel=t;render();};
+H['cal-mode']=function(el){ui.cal.mode=el.dataset.mode;render();};
+H['cal-group']=function(el){var id=el.dataset.gid;ui.cal.hidden[id]=!ui.cal.hidden[id];render();};
+H['cal-sel']=function(el){ui.cal.sel=+el.dataset.n;render();};
+H['add-leave']=function(el){openLeave({crewId:el.dataset.crew,off:el.dataset.off});};
+H['edit-leave']=function(el){openLeave({id:el.dataset.id});};
+H['goto-cal']=function(el){
+  var n=+el.dataset.n; if(!isFinite(n)) return;
+  if(ui.modal) closeModal();
+  $('#toastRoot').innerHTML='';
+  ui.tab='calendar'; ui.cal.mode='month'; ui.cal.cur=monthStart(n); ui.cal.sel=n;
+  try{history.replaceState(null,'','#calendar');}catch(e){}
+  render(); window.scrollTo(0,0);
+};
+H['plan-next']=function(el){
+  var g=groupById(el.dataset.gid), info=nextInfo(g,todayN()); if(!info||!info.crew) return;
+  if(info.leave) openLeave({id:info.leave.id}); else openLeave({crewId:info.crew.id,off:iso(info.off),back:iso(info.back)});
+};
+H['gen-plan']=function(el){openPlan(el.dataset.gid);};
+H['pl-apply']=applyPlan;
+H['lv-save']=saveLeave;
+H['lv-tclear']=function(el){setVal(el.dataset.f,'');leaveChanged();};
+H['lv-delete']=function(){
+  var id=ui.modal.id; pushUndo(); state.leaves=state.leaves.filter(function(l){return l.id!==id;}); closeModal(); commit(); toast('Leave deleted',true);
+};
+H['lv-set']=function(el){
+  var off=val('lv-off'); if(!isIso(off)) return; var o=pd(off), back=isIso(val('lv-back'))?pd(val('lv-back')):o+31, k=el.dataset.kind, n=+el.dataset.n;
+  if(k==='month') back=addMonths(o,1); else if(k==='days') back=o+n; else if(k==='snap') back=snap(back); else if(k==='step') back+=n;
+  setVal('lv-back',iso(back));
+  if(ui.modal&&ui.modal.mode==='auto'){ui.modal.mode='manual';ui.modal.changed=true;}
+  leaveChanged();
+};
+H['lv-mode']=function(el){
+  var m=ui.modal; if(!m) return; m.mode=el.dataset.mode;
+  if(m.mode==='auto'){
+    if(m.wasAuto&&m.orig){setVal('lv-crew',m.orig.crewId);setVal('lv-off',m.orig.off);setVal('lv-back',m.orig.back);m.prevOff=m.orig.off;}
+    m.changed=false;
+  }
+  leaveChanged();
+};
+H['lv-auto']=function(el){
+  var l=state.leaves.filter(function(x){return x.id===el.dataset.id;})[0]; if(!l) return;
+  pushUndo(); l.mode='auto'; commit(); toast('Dates recalculated automatically',true);
+};
+H['recalc-all']=function(el){
+  var gid=el.dataset.gid, t=todayN(), ids={}; state.crew.forEach(function(c){if(c.group===gid&&c.active)ids[c.id]=1;});
+  pushUndo(); var n=0;
+  state.leaves.forEach(function(l){if(ids[l.crewId]&&pd(l.off)>t&&l.mode!=='auto'&&!l.booked&&!l.returnBooked){l.mode='auto';n++;}});
+  commit(); toast(plural(n,'leave')+' recalculated automatically',true);
+};
+H['toggle-booked']=function(el){var l=state.leaves.filter(function(x){return x.id===el.dataset.id;})[0];if(l){l.booked=el.checked;commit();}};
+H['toggle-return']=function(el){var l=state.leaves.filter(function(x){return x.id===el.dataset.id;})[0];if(l){l.returnBooked=el.checked;commit();}};
+H['rot-all']=function(el){ui.rotAll=el.checked;render();};
+H['rot-more']=function(el){var id=el.dataset.gid;ui.rotMore[id]=!ui.rotMore[id];render();};
+H['toggle-former']=function(el){ui.showFormer=el.checked;render();};
+H['mv']=function(el){
+  var c=crewById(el.dataset.id); if(!c) return; var m=membersOf(c.group), i=m.indexOf(c), j=i+(+el.dataset.d);
+  if(j<0||j>=m.length) return; m.splice(i,1); m.splice(j,0,c); m.forEach(function(x,k){x.order=k+1;}); commit();
+};
+H['add-crew']=function(){openCrewForm();};
+H['edit-crew']=function(el){openCrewForm(el.dataset.id);};
+H['open-crew']=function(el){openProfile(el.dataset.id);};
+H['prof-year']=function(el){openProfile(ui.modal.id,ui.modal.year+(+el.dataset.d));};
+H['crew-save']=saveCrew;
+H['crew-remove']=function(el){openRemove(el.dataset.id);};
+H['remove-go']=removeCrew;
+H['restore-crew']=function(el){
+  var c=crewById(el.dataset.id); if(!c) return; pushUndo(); c.active=true; c.left=null; if(groupById(c.group).pattern==='rotation') placeAt(c,membersOf(c.group).length+1); commit(); toast(c.name+' is back on the crew list',true);
+};
+H['settings-save']=saveSettings;
+H['sg-add']=function(){readSettingsDraft();ui.modal.groups.push({id:uid(),name:'New department',pattern:'rotation',maxAway:1,overlapEvery:0,color:PALETTE[ui.modal.groups.length%PALETTE.length]});renderSettings();};
+H['sg-del']=function(el){readSettingsDraft();ui.modal.groups.splice(+el.dataset.i,1);renderSettings();};
+H['backup-download']=downloadBackup;
+H['backup-text']=function(){showBackupText();};
+H['text-tools']=function(){ui.textTools=!ui.textTools;render();};
+H['copy-text']=copyText;
+H['pick-file']=function(el,e){e.preventDefault();var f=document.getElementById('restoreFile');if(f)f.click();};
+H['restore-check-text']=function(){ui.restore=parseBackup(val('restoreText'));render();};
+H['restore-discard']=function(){ui.restore=null;render();};
+H['restore-confirm']=openRestoreConfirm;
+H['restore-go']=function(){var r=ui.restore;if(!r||!r.ok)return;stashForUndo();closeModal();replaceState(r.state);ui.restore=null;render();toast('Backup restored');};
+H['discard-undo']=function(){try{localStorage.removeItem(LS_UNDO);}catch(e){}render();};
+H['undo-restore']=function(){
+  try{var u=JSON.parse(localStorage.getItem(LS_UNDO));replaceState(normalize(JSON.parse(u.json)));localStorage.removeItem(LS_UNDO);toast('Previous data brought back');}catch(e){toast('Nothing to undo.');}
+  render();
+};
+H['restore-unsynced']=function(){
+  try{var u=JSON.parse(localStorage.getItem(LS_UNSYNCED));stashForUndo();replaceState(normalize(JSON.parse(u.json)));localStorage.removeItem(LS_UNSYNCED);toast('Your unsaved edits are back');}catch(e){toast('Could not bring them back.');}
+};
+H['discard-unsynced']=function(){try{localStorage.removeItem(LS_UNSYNCED);}catch(e){}render();};
+H['save-now']=saveNow;
+H['clear-all']=function(){
+  ui.modal={type:'clear'};
+  openModal(modalHead('Clear all data?')+'<p>This removes every crew member and leave record. Download a backup first if you might need them.</p><div class="f" style="margin-top:12px"><label for="clr">Type DELETE to confirm</label><input type="text" id="clr" autocomplete="off" data-live="1"></div><div class="mf">'+btn('Cancel','close-modal')+'<button class="btn danger solid" id="clr-go" data-act="clear-go" disabled>Clear everything</button></div>');
+};
+H['clear-go']=function(){
+  if(val('clr').trim()!=='DELETE') return; stashForUndo(); closeModal(); var keep=state.settings; var rev=state.rev; state=emptyState(); state.settings=keep; state.settings.lastBackupAt=keep.lastBackupAt; state.rev=rev; commit(); toast('All data cleared. You can bring it back from the Backup page.');
+};
+
+document.addEventListener('click',function(e){
+  var el=e.target.closest('[data-act]'); if(!el) return;
+  var f=H[el.dataset.act]; if(!f) return;
+  if(el.tagName==='INPUT'&&el.type==='checkbox'){f(el,e);return;}
+  f(el,e);
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='restoreFile'&&t.files&&t.files[0]){readFile(t.files[0]);return;}
+  if(t.dataset&&t.dataset.act&&t.type==='checkbox'&&H[t.dataset.act]&&t.dataset.act!=='lv-set') return; // handled on click
+  if(!ui.modal) return;
+  if(ui.modal.type==='leave'){
+    if(t.id==='lv-off'){
+      var n=pd(t.value||ui.modal.prevOff), p=pd(ui.modal.prevOff);
+      if(!ui.modal.id&&isIso(val('lv-back'))&&isIso(t.value)) setVal('lv-back',iso(pd(val('lv-back'))+(n-p)));
+      if(isIso(t.value)) ui.modal.prevOff=t.value;
+    }
+    if((t.id==='lv-off'||t.id==='lv-back'||t.id==='lv-crew')&&ui.modal.mode==='auto'){ui.modal.mode='manual';ui.modal.changed=true;}
+    leaveChanged();
+  } else if(ui.modal.type==='plan') planChanged(t);
+  else if(ui.modal.type==='crew') crewFormChanged(t);
+});
+document.addEventListener('input',function(e){
+  var t=e.target; if(!ui.modal) return;
+  if(ui.modal.type==='leave'&&t.dataset.live&&t.type!=='date') leaveChanged();
+  if(ui.modal.type==='crew'&&(t.id==='cf-allow'||t.id==='cf-block')) crewFormChanged();
+  if(ui.modal.type==='clear'&&t.id==='clr'){var b=$('#clr-go');if(b)b.disabled=t.value.trim()!=='DELETE';}
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&ui.modal){closeModal();return;}
+  if(e.key==='Enter'&&ui.modal&&e.target.tagName==='INPUT'&&e.target.type!=='checkbox'&&e.target.type!=='radio'){
+    var p=$('#modalRoot .btn.primary'); if(p&&!p.disabled){e.preventDefault();p.click();}
+  }
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('label[data-act="pick-file"]')){e.preventDefault();var f=document.getElementById('restoreFile');if(f)f.click();}
+});
+window.addEventListener('hashchange',function(){var h=(location.hash||'').slice(1);if(VIEWS[h]&&h!==ui.tab){ui.tab=h;render();}});
+window.addEventListener('storage',function(e){
+  if(e.key!==LS_KEY||!e.newValue) return;
+  var other=null; try{other=JSON.parse(e.newValue);}catch(x){return;}
+  if(!other||typeof other.rev!=='number'||other.rev<=state.rev) return;
+  var hadModal=!!ui.modal; if(hadModal) closeModal();
+  state=normalize(other); rebuildAll(); render();
+  if(cloud.ref&&!cloud.fatal&&cloud.savedRev!==state.rev){cloud.dirty=true;clearTimeout(cloud.timer);cloud.timer=setTimeout(pushCloud,1500);}
+  toast(hadModal?'This was changed in another tab. The latest data is loaded, so please redo your edit.':'Updated with changes made in another tab.');
+});
+var rzT=null;
+window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(function(){
+  if(ui.tab!=='calendar'||ui.cal.mode!=='year'||ui.modal) return;
+  var vw=document.getElementById('view'), a=0; try{var cs=getComputedStyle(vw);a=vw.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);}catch(e){}
+  if(Math.abs(a-(ui.cal.lastW||0))>4) render();
+},200);});
+window.addEventListener('beforeunload',function(e){if(cloud.ref&&(cloud.dirty||cloud.busy)&&!cloud.fatal){e.preventDefault();e.returnValue='';}});
+
+/* ================= boot ================= */
+var lastDay=null;
+function boot(){
+  try{var raw=localStorage.getItem(LS_KEY); if(raw) state=normalize(JSON.parse(raw));}catch(e){ui.localOk=false;}
+  rebuildAll();
+  if(hasData(state)) ui.localOk=localSave();
+  try{var h=(location.hash||'').slice(1); if(VIEWS[h]) ui.tab=h;}catch(e){}
+  lastDay=todayN(); render(); initCloud();
+  setInterval(function(){var d=todayN(); if(d!==lastDay){lastDay=d;rebuildAll();if(!ui.modal)render();else ui.needRender=true;}},60000);
+}
+if(typeof document!=='undefined'&&typeof window!=='undefined'&&document.getElementById('view')) boot();
+if(typeof module!=='undefined'&&module.exports){
+  module.exports={pd:pd,iso:iso,addMonths:addMonths,snap:snap,nextBoundary:nextBoundary,buildPlan:buildPlan,planStartFor:planStartFor,nextInfo:nextInfo,balance:balance,leaveDays:leaveDays,findConflicts:findConflicts,normalize:normalize,
+    setState:function(s){state=s;conflictCache={key:'',val:null};},getState:function(){return state;},parseBackup:parseBackup,membersOf:membersOf,leavesOfGroup:leavesOfGroup,chainCount:chainCount,followingLeaves:followingLeaves,groupById:groupById,rebuildAll:rebuildAll,emptyState:emptyState,makeBackup:makeBackup,getWarnings:getWarnings,monthStart:monthStart,todayN:todayN,VIEWS:VIEWS,ui:ui,render:render,commit:commit,openLeave:openLeave,leaveChanged:leaveChanged,leaveDraft:leaveDraft,openPlan:openPlan,planCompute:planCompute,openCrewForm:openCrewForm,openProfile:openProfile,openSettings:openSettings,H:H};
+}
+})();
+</script>
+</body>
+</html>
