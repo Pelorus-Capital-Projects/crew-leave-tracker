@@ -243,7 +243,7 @@ html[data-theme="dark"] .btn.primary{background:#2C6AAA;border-color:#2C6AAA;col
 .f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .f>label,.lab{font-size:13.5px;font-weight:500;color:var(--ink2)}
 .f small{color:var(--ink2);font-size:12.5px}
-input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],select,textarea{width:100%;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px}
+input[type=text],input[type=password],input[type=email],input[type=tel],input[type=date],input[type=number],select,textarea{width:100%;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px}
 textarea{resize:vertical;min-height:84px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .qb{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
@@ -300,6 +300,13 @@ input[type=file]{display:none}
   .lrow .c-act{flex-wrap:wrap;justify-content:flex-start;width:100%;min-width:0;margin-left:0;gap:4px 14px}
   .lrow .chk{white-space:nowrap}
 }
+body.locked .tabs,body.locked .top-right{display:none!important}
+.lock-wrap{max-width:440px;margin:6vh auto 40px}
+.lock-card{padding:26px 24px}
+.lock-logo svg{width:56px;height:56px;border-radius:12px;display:block;margin-bottom:14px}
+.lock-alt{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.codes{margin:6px 0 0;padding:12px 14px 12px 40px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font:500 16px/1.75 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.01em}
+.codes li{white-space:nowrap;padding-left:4px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -309,7 +316,8 @@ input[type=file]{display:none}
   <nav class="tabs" id="tabs" aria-label="Sections"></nav>
   <div class="top-right">
     <button class="status" id="saveStatus" data-act="tab" data-tab="backup" title="Save status"></button>
-    <button class="iconbtn" data-act="open-settings" aria-label="Settings"></button>
+    <button class="iconbtn" id="gearBtn" data-act="open-settings" aria-label="Settings" title="Settings"></button>
+    <button class="iconbtn" id="lockBtn" data-act="auth-lock" aria-label="Lock the app" title="Lock"></button>
   </div>
 </header>
 <main id="view"></main>
@@ -321,7 +329,7 @@ input[type=file]{display:none}
 'use strict';
 
 /* ================= constants ================= */
-var APP_ID='pelorus-crew-leave-tracker', SCHEMA=1, APP_VERSION='2.1 (15 Nov 2026)';
+var APP_ID='pelorus-crew-leave-tracker', SCHEMA=1, APP_VERSION='2.2 (16 Nov 2026)';
 var LS_KEY='pelorus-leave:v1', LS_UNDO='pelorus-leave:prerestore', LS_UNSYNCED='pelorus-leave:unsynced';
 var DAY=86400000;
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -342,6 +350,7 @@ var ICONS={
   rotation:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/>',
   crew:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.2c2.7 0 4.5 1.8 4.5 4.8"/>',
   backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 20h16"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   left:'<path d="M15 5l-7 7 7 7"/>',
@@ -390,7 +399,7 @@ function setVal(id,v){var e=document.getElementById(id);if(e)e.value=v;}
 function chk(id){var e=document.getElementById(id);return !!(e&&e.checked);}
 function firstName(n){return String(n).trim().split(/\s+/)[0]||'';}
 function initials(n){var p=String(n).trim().split(/\s+/);return ((p[0]||'').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase();}
-function btn(label,act,attrs,cls){return '<button class="btn '+(cls||'')+'" data-act="'+act+'" '+(attrs||'')+'>'+label+'</button>';}
+function btn(label,act,attrs,cls){return '<button type="button" class="btn '+(cls||'')+'" data-act="'+act+'" '+(attrs||'')+'>'+label+'</button>';}
 function stamp(){var d=new Date(),z=function(x){return String(x).padStart(2,'0');};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes());}
 
 /* ================= state ================= */
@@ -1017,9 +1026,12 @@ VIEWS.backup=function(){
 /* ================= render ================= */
 var TABS=[['overview','Overview'],['calendar','Calendar'],['rotation','Rotation'],['crew','Crew'],['backup','Backup']];
 function render(){
+  if(AUTH.locked){renderLock();return;}
+  document.body.classList.remove('locked');
   $('#brand').innerHTML=LOGO+'<div><b>Crew leave tracker</b>'+(state.settings.vessel?'<small>'+esc(state.settings.vessel)+'</small>':'')+'</div>';
   $('#tabs').innerHTML=TABS.map(function(x){return '<button class="tab" data-act="tab" data-tab="'+x[0]+'" '+(ui.tab===x[0]?'aria-current="page"':'')+'>'+ic(x[0])+'<span>'+x[1]+'</span></button>';}).join('');
-  var g=$('.iconbtn'); if(g&&!g.firstChild) g.innerHTML=ic('gear');
+  var g=$('#gearBtn'); if(g&&!g.firstChild) g.innerHTML=ic('gear');
+  var lk=$('#lockBtn'); if(lk&&!lk.firstChild) lk.innerHTML=ic('lock');
   var fn=VIEWS[ui.tab]||VIEWS.overview;
   $('#view').innerHTML=fn();
   paintStatus();
@@ -1294,6 +1306,7 @@ function renderSettings(){
   var s=Object.assign({},state.settings,ui.modal.top||{}), gs=ui.modal.groups;
   var inUse=function(id){return state.crew.some(function(c){return c.group===id;});};
   openModal(modalHead('Settings')+
+    (AUTH.rec?'<div class="sumbox" style="margin-bottom:14px"><p><b>Login</b> <span class="muted">· signed in as '+esc(AUTH.rec.user)+' · '+plural(codesLeft(),'recovery code')+' left</span></p><div class="actions" style="margin-top:8px">'+btn('Change password','auth-open','data-k="change-pw"','sm')+btn('Change username','auth-open','data-k="change-user"','sm')+btn('New recovery codes','auth-open','data-k="new-codes"','sm')+btn('Lock now','auth-lock','','sm')+'</div></div>':'')+
     '<div class="f"><label for="st-vessel">Vessel name (shown in the header)</label><input type="text" id="st-vessel" value="'+esc(s.vessel)+'" placeholder="Optional"></div>'+
     '<div class="f"><label for="st-track">Tracking starts</label><input type="date" id="st-track" value="'+esc(s.trackStart||'')+'"><small>Leave before this date is not counted against anyone’s allowance.</small></div>'+
     '<div class="g2"><div class="f"><label for="st-year">Leave year starts</label><select id="st-year">'+MONL.map(function(m,i){return '<option value="'+(i+1)+'"'+(s.yearStartMonth===i+1?' selected':'')+'>1 '+m+'</option>';}).join('')+'</select></div>'+
@@ -1330,7 +1343,8 @@ function saveSettings(){
 }
 
 /* ================= backup / restore ================= */
-function makeBackup(){return {app:APP_ID,backupVersion:1,appVersion:APP_VERSION,schema:SCHEMA,exportedAt:new Date().toISOString(),counts:{crew:state.crew.length,leaves:state.leaves.length},data:state};}
+function makeBackup(){return {app:APP_ID,backupVersion:1,appVersion:APP_VERSION,schema:SCHEMA,exportedAt:new Date().toISOString(),counts:{crew:state.crew.length,leaves:state.leaves.length},auth:authForBackup(),data:state};}
+function authForBackup(){if(!AUTH.rec)return null;var a=JSON.parse(JSON.stringify(AUTH.rec));delete a.fails;delete a.until;return a;}
 function markBackup(){state.settings.lastBackupAt=new Date().toISOString();commit();}
 function saveBlobFile(name,json){
   try{
@@ -1375,7 +1389,8 @@ function parseBackup(text){
   if((o.schema||d.schema||1)>SCHEMA) return {ok:false,error:'This backup was made by a newer version of the app.'};
   var st=normalize(d), ids={}; st.crew.forEach(function(c){ids[c.id]=1;});
   var orphans=st.leaves.filter(function(l){return !ids[l.crewId];}).length; st.leaves=st.leaves.filter(function(l){return ids[l.crewId];});
-  return {ok:true,state:st,meta:{exportedAt:o.exportedAt||null,backupVersion:o.backupVersion||null,crew:st.crew.length,leaves:st.leaves.length,orphans:orphans}};
+  var au=null; if(o&&o.auth&&validAuth(o.auth)){au=JSON.parse(JSON.stringify(o.auth));au.codes=au.codes.filter(function(c){return c&&typeof c.salt==='string'&&typeof c.hash==='string'&&+c.iter>=1000;});au.fails=0;au.until=0;}
+  return {ok:true,state:st,auth:au,meta:{exportedAt:o.exportedAt||null,backupVersion:o.backupVersion||null,crew:st.crew.length,leaves:st.leaves.length,orphans:orphans}};
 }
 function stashForUndo(){try{localStorage.setItem(LS_UNDO,JSON.stringify({at:new Date().toISOString(),json:JSON.stringify(state)}));}catch(e){}}
 function replaceState(ns){var rev=Math.max(state.rev,ns.rev||0);state=ns;state.rev=rev;commit();}
@@ -1508,6 +1523,7 @@ document.addEventListener('click',function(e){
 document.addEventListener('change',function(e){
   var t=e.target;
   if(t.id==='restoreFile'&&t.files&&t.files[0]){readFile(t.files[0]);return;}
+  if(t.id==='authRestore'&&t.files&&t.files[0]){restoreAtSetup(t.files[0]);return;}
   if(t.dataset&&t.dataset.act&&t.type==='checkbox'&&H[t.dataset.act]&&t.dataset.act!=='lv-set') return; // handled on click
   if(!ui.modal) return;
   if(ui.modal.type==='leave'){
@@ -1529,20 +1545,21 @@ document.addEventListener('input',function(e){
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'&&ui.modal){closeModal();return;}
-  if(e.key==='Enter'&&ui.modal&&e.target.tagName==='INPUT'&&e.target.type!=='checkbox'&&e.target.type!=='radio'){
+  if(e.key==='Enter'&&ui.modal&&e.target.tagName==='INPUT'&&e.target.type!=='checkbox'&&e.target.type!=='radio'&&!(e.target.closest&&e.target.closest('form[data-auth]'))){
     var p=$('#modalRoot .btn.primary'); if(p&&!p.disabled){e.preventDefault();p.click();}
   }
-  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('label[data-act="pick-file"]')){e.preventDefault();var f=document.getElementById('restoreFile');if(f)f.click();}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('label[data-act="pick-file"],label[for="authRestore"]')){e.preventDefault();var f=document.getElementById(e.target.getAttribute('for')||'restoreFile');if(f)f.click();}
 });
 window.addEventListener('hashchange',function(){var h=(location.hash||'').slice(1);if(VIEWS[h]&&h!==ui.tab){ui.tab=h;render();}});
 window.addEventListener('storage',function(e){
+  if(e.key===LS_AUTH){authLoad(); if(!AUTH.rec||(!AUTH.locked&&!sessionUnlocked())) lockApp(); return;}
   if(e.key!==LS_KEY||!e.newValue) return;
   var other=null; try{other=JSON.parse(e.newValue);}catch(x){return;}
   if(!other||typeof other.rev!=='number'||other.rev<=state.rev) return;
   var hadModal=!!ui.modal; if(hadModal) closeModal();
   state=normalize(other); rebuildAll(); render();
   if(cloud.ref&&!cloud.fatal&&cloud.savedRev!==state.rev){cloud.dirty=true;clearTimeout(cloud.timer);cloud.timer=setTimeout(pushCloud,1500);}
-  toast(hadModal?'This was changed in another tab. The latest data is loaded, so please redo your edit.':'Updated with changes made in another tab.');
+  if(!AUTH.locked) toast(hadModal?'This was changed in another tab. The latest data is loaded, so please redo your edit.':'Updated with changes made in another tab.');
 });
 var rzT=null;
 window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(function(){
@@ -1552,6 +1569,245 @@ window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(fun
 },200);});
 window.addEventListener('beforeunload',function(e){if(cloud.ref&&(cloud.dirty||cloud.busy)&&!cloud.fatal){e.preventDefault();e.returnValue='';}});
 
+/* ================= login (username, password, recovery codes) ================= */
+var LS_AUTH='pelorus-leave:auth', SS_UNLOCK='pelorus-leave:unlocked';
+var PW_ITER=210000, CODE_ITER=60000, CODE_COUNT=8;
+var CODE_WORDS=["anchor", "harbour", "lantern", "compass", "marlin", "dolphin", "coral", "reef", "tide", "breeze", "island", "beacon", "cable", "cabin", "galley", "bridge", "rudder", "keel", "mast", "sail", "hull", "deck", "stern", "bow", "helm", "chart", "pilot", "ensign", "pennant", "halyard", "winch", "cleat", "bollard", "mooring", "buoy", "fender", "tender", "launch", "jetty", "quay", "marina", "lagoon", "bay", "cove", "cape", "inlet", "shoal", "current", "swell", "wave", "spray", "foam", "pebble", "sand", "shell", "pearl", "oyster", "lobster", "crab", "squid", "turtle", "whale", "shark", "tuna", "salmon", "trout", "heron", "gull", "petrel", "albatross", "osprey", "falcon", "eagle", "sparrow", "robin", "finch", "raven", "owl", "swallow", "kestrel", "pelican", "puffin", "otter", "seal", "walrus", "beaver", "badger", "fox", "wolf", "bear", "lynx", "tiger", "lion", "zebra", "camel", "llama", "bison", "moose", "elk", "deer", "rabbit", "hare", "panda", "koala", "lemon", "mango", "olive", "cherry", "peach", "plum", "apple", "pear", "melon", "grape", "lime", "coconut", "papaya", "fig", "date", "almond", "walnut", "hazel", "maple", "cedar", "pine", "willow", "birch", "oak", "aspen", "spruce", "cypress", "laurel", "ivy", "fern", "moss", "clover", "daisy", "tulip", "lily", "orchid", "poppy", "lotus", "violet", "amber", "copper", "silver", "golden", "bronze", "iron", "cobalt", "indigo", "scarlet", "crimson", "ruby", "jade", "opal", "topaz", "garnet", "onyx", "quartz", "granite", "marble", "slate", "canyon", "desert", "forest", "meadow", "valley", "river", "delta", "glacier", "summit", "ridge", "prairie", "tundra", "harvest", "autumn", "winter", "spring", "summer", "sunrise", "sunset", "dawn", "dusk", "thunder", "rainbow", "comet", "planet", "meteor", "orbit", "galaxy", "nebula", "zenith", "horizon", "atlas", "voyage", "journey", "sextant", "rope", "knot", "barrel", "kettle", "teapot", "candle", "basket", "ladder", "hammer", "anvil", "chisel", "feather", "pillow", "blanket", "jacket", "boots", "helmet", "castle", "tower", "window", "garden", "orchard", "village", "market"];
+var AUTH={rec:null,locked:true,view:'login',msg:'',msgKind:'bad',newCodes:null,busy:false,after:null,lockTimer:null};
+function hasCrypto(){try{return !!(window.crypto&&crypto.subtle&&crypto.getRandomValues);}catch(e){return false;}}
+function validAuth(r){return !!(r&&r.v===1&&typeof r.user==='string'&&r.user&&r.pw&&typeof r.pw.salt==='string'&&typeof r.pw.hash==='string'&&+r.pw.iter>=1000&&Array.isArray(r.codes));}
+function authLoad(){var r=null;try{r=JSON.parse(localStorage.getItem(LS_AUTH)||'null');}catch(e){}AUTH.rec=validAuth(r)?r:null;}
+function authSave(){try{localStorage.setItem(LS_AUTH,JSON.stringify(AUTH.rec));return true;}catch(e){return false;}}
+function b64(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s);}
+function unb64(s){var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
+function randBytes(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return a;}
+function randInt(n){var lim=Math.floor(4294967296/n)*n,x;do{x=crypto.getRandomValues(new Uint32Array(1))[0];}while(x>=lim);return x%n;}
+function pbkdf2(secret,salt,iter){
+  return crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveBits']).then(function(k){
+    return crypto.subtle.deriveBits({name:'PBKDF2',salt:unb64(salt),iterations:iter,hash:'SHA-256'},k,256);
+  }).then(b64);
+}
+function makeHash(secret,iter){var salt=b64(randBytes(16));return pbkdf2(secret,salt,iter).then(function(h){return {salt:salt,iter:iter,hash:h};});}
+function sameStr(a,b){if(a.length!==b.length)return false;var d=0;for(var i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0;}
+function checkHash(secret,h){return pbkdf2(secret,h.salt,+h.iter).then(function(x){return sameStr(x,h.hash);});}
+function normUser(u){return String(u||'').trim().toLowerCase();}
+function normCode(c){return String(c||'').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-+|-+$/g,'');}
+function newCode(){var w=[];for(var i=0;i<3;i++)w.push(CODE_WORDS[randInt(CODE_WORDS.length)]);return w.join('-');}
+function makeCodes(){
+  var codes=[],seen={};while(codes.length<CODE_COUNT){var c=newCode();if(!seen[c]){seen[c]=1;codes.push(c);}}
+  return Promise.all(codes.map(function(c){return makeHash(c,CODE_ITER);})).then(function(hs){
+    return {plain:codes,stored:hs.map(function(h){return {salt:h.salt,iter:h.iter,hash:h.hash,used:false};})};
+  });
+}
+function codesLeft(){return AUTH.rec?AUTH.rec.codes.filter(function(c){return !c.used;}).length:0;}
+function unlockToken(){return AUTH.rec?AUTH.rec.pw.hash.slice(0,24):'';}
+function sessionUnlocked(){try{return !!AUTH.rec&&sessionStorage.getItem(SS_UNLOCK)===unlockToken();}catch(e){return false;}}
+function setSessionUnlocked(on){try{if(on)sessionStorage.setItem(SS_UNLOCK,unlockToken());else sessionStorage.removeItem(SS_UNLOCK);}catch(e){}}
+function waitLeft(){var u=AUTH.rec&&+AUTH.rec.until||0;return Math.max(0,Math.ceil((u-Date.now())/1000));}
+function noteFail(){AUTH.rec.fails=(+AUTH.rec.fails||0)+1;if(AUTH.rec.fails>=5)AUTH.rec.until=Date.now()+Math.min(900,30*Math.pow(2,AUTH.rec.fails-5))*1000;authSave();}
+function noteOk(){AUTH.rec.fails=0;AUTH.rec.until=0;}
+function authMsg(text,kind){AUTH.msg=text||'';AUTH.msgKind=kind||'bad';}
+function unlockApp(){
+  AUTH.locked=false; authMsg(''); setSessionUnlocked(true);
+  document.body.classList.remove('locked');
+  var after=AUTH.after; AUTH.after=null;
+  render();
+  if(after) toast(after);
+  else if(AUTH.rec&&codesLeft()<=2) toast(codesLeft()?'Only '+plural(codesLeft(),'recovery code')+' left. Make new ones in Settings.':'No recovery codes left. Make new ones in Settings.');
+}
+function lockApp(){
+  if(ui.modal) closeModal();
+  AUTH.locked=true; AUTH.view=AUTH.rec?'login':'setup'; authMsg(''); setSessionUnlocked(false);
+  $('#toastRoot').innerHTML=''; render(); window.scrollTo(0,0);
+}
+function pwField(id,label,ac,extra){return '<div class="f"><label for="'+id+'">'+label+'</label><input type="password" id="'+id+'" autocomplete="'+ac+'" required'+(extra||'')+'></div>';}
+function showPwToggle(){return '<label class="chk" style="margin:-2px 0 6px"><input type="checkbox" data-act="auth-showpw"> Show password</label>';}
+function lockCard(title,sub,body){
+  return '<div class="lock-wrap"><div class="card lock-card"><div class="lock-logo">'+LOGO+'</div><h1 class="pt" style="font-size:30px">'+esc(title)+'</h1>'+(sub?'<p class="muted" style="margin:4px 0 14px">'+sub+'</p>':'<div style="height:12px"></div>')+
+    (AUTH.msg?'<div class="msg '+(AUTH.msgKind==='good'?'good':AUTH.msgKind==='info'?'info':'bad')+'" role="alert">'+esc(AUTH.msg)+'</div>':'')+body+'</div></div>';
+}
+function codesBlock(codes){
+  return '<ol class="codes">'+codes.map(function(c){return '<li>'+esc(c)+'</li>';}).join('')+'</ol>'+
+    '<div class="actions" style="margin:10px 0 12px">'+btn('Download codes','auth-codes-dl','','sm primary')+btn('Copy codes','auth-codes-copy','','sm')+'</div>'+
+    '<p class="muted small">Each code works once. Keep them somewhere safe and separate from your backup files, for example printed or in a password manager. Your username is not in the file.</p>';
+}
+function renderLock(){
+  document.body.classList.add('locked');
+  $('#brand').innerHTML=LOGO+'<div><b>Crew leave tracker</b></div>';
+  $('#tabs').innerHTML=''; $('#modalRoot').innerHTML=''; ui.modal=null;
+  var v=AUTH.view, h='', busy=AUTH.busy?' disabled':'';
+  if(!hasCrypto()){
+    $('#view').innerHTML=lockCard('Login unavailable','This page is not opened over a secure connection, so the login cannot work here. Open the app from its web address (https://…).','');return;
+  }
+  if(v==='setup'){
+    h=lockCard('Set up your login',hasData(state)?'Your crew and leave data are kept. Choose a username and password to protect them on this device.':'Choose a username and password. You will also get recovery codes in case you forget the password.',
+      '<form data-auth="setup" autocomplete="on"><div class="f"><label for="au-user">Username</label><input type="text" id="au-user" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>'+
+      pwField('au-pw','Password (at least 8 characters)','new-password',' minlength="8"')+pwField('au-pw2','Confirm password','new-password',' minlength="8"')+showPwToggle()+
+      '<button class="btn primary" type="submit" style="width:100%"'+busy+'>'+(AUTH.busy?'Setting up…':'Create login')+'</button></form>'+
+      (!hasData(state)?'<div class="lock-alt"><p class="muted small" style="margin-bottom:8px">Moving from another device? Restore a backup file and its login comes with it.</p><label class="btn sm" for="authRestore" role="button" tabindex="0">Restore from a backup file</label><input type="file" id="authRestore" accept=".json,application/json,text/plain"></div>':''));
+  } else if(v==='codes'){
+    h=lockCard('Save your recovery codes','If you forget your password, any one of these codes lets you set a new one.',
+      codesBlock(AUTH.newCodes||[])+'<label class="chk" style="margin:10px 0"><input type="checkbox" id="au-saved" data-act="auth-saved"> I have saved these codes</label>'+
+      '<button class="btn primary" id="au-continue" data-act="auth-continue" style="width:100%" disabled>Continue</button>');
+  } else if(v==='login'){
+    var w=waitLeft();
+    h=lockCard('Sign in','',
+      '<form data-auth="login" autocomplete="on"><div class="f"><label for="au-user">Username</label><input type="text" id="au-user" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>'+
+      pwField('au-pw','Password','current-password')+showPwToggle()+
+      '<button class="btn primary" type="submit" style="width:100%"'+(busy||(w?' disabled':''))+'>'+(AUTH.busy?'Checking…':w?'Try again in '+w+' s':'Sign in')+'</button></form>'+
+      '<div class="lock-alt"><button class="btn ghost sm" data-act="auth-view" data-v="forgot">Forgot password?</button></div>');
+  } else if(v==='forgot'){
+    var left=codesLeft(), w2=waitLeft();
+    h=lockCard('Reset your password',left?'Enter your username and one of your recovery codes, then choose a new password. '+plural(left,'code')+' left.':'There are no unused recovery codes left on this device.',
+      (left?'<form data-auth="forgot" autocomplete="off"><div class="f"><label for="au-user">Username</label><input type="text" id="au-user" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>'+
+      '<div class="f"><label for="au-code">Recovery code</label><input type="text" id="au-code" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. anchor-harbour-lantern" required></div>'+
+      pwField('au-pw','New password (at least 8 characters)','new-password',' minlength="8"')+pwField('au-pw2','Confirm new password','new-password',' minlength="8"')+showPwToggle()+
+      '<button class="btn primary" type="submit" style="width:100%"'+(busy||(w2?' disabled':''))+'>'+(AUTH.busy?'Checking…':w2?'Try again in '+w2+' s':'Reset password')+'</button></form>':'')+
+      '<div class="lock-alt" style="display:flex;gap:8px;flex-wrap:wrap">'+btn('Back to sign in','auth-view','data-v="login"','sm')+btn('Lost your codes too?','auth-view','data-v="erase"','sm ghost')+'</div>');
+  } else if(v==='erase'){
+    h=lockCard('Start again on this device','Without your password or a recovery code, the only way back in is to erase this device’s copy and start again. This deletes all crew, leave and the login stored in this browser. You can then set up a new login and restore your data from a backup file.',
+      '<form data-auth="erase" autocomplete="off"><div class="f"><label for="au-erase">Type ERASE to confirm</label><input type="text" id="au-erase" autocomplete="off" autocapitalize="characters" required></div>'+
+      '<button class="btn danger solid" type="submit" style="width:100%">Erase this device</button></form>'+
+      '<div class="lock-alt">'+btn('Back to sign in','auth-view','data-v="login"','sm')+'</div>');
+  }
+  $('#view').innerHTML=h;
+  clearTimeout(AUTH.lockTimer);
+  if((v==='login'||v==='forgot')&&waitLeft()) AUTH.lockTimer=setTimeout(function(){if(AUTH.locked&&!AUTH.busy)renderLock();},1000);
+  var first=$('#view input:not([type=checkbox]):not([type=file])'); if(first&&!AUTH.busy){try{first.focus({preventScroll:true});}catch(e){}}
+}
+function authBusy(on){AUTH.busy=on; if(AUTH.locked) renderLock();}
+function formVals(){return {user:val('au-user'),pw:val('au-pw'),pw2:val('au-pw2'),code:val('au-code'),erase:val('au-erase')};}
+function pwProblem(pw,pw2){if(pw.length<8)return 'Use at least 8 characters for the password.';if(pw!==pw2)return 'The two passwords do not match.';return '';}
+var AUTH_SUBMIT={
+  setup:function(){
+    var f=formVals(), u=f.user.trim(), p=pwProblem(f.pw,f.pw2);
+    if(!u){authMsg('Enter a username.');return renderLock();}
+    if(p){authMsg(p);return renderLock();}
+    authMsg(''); authBusy(true);
+    Promise.all([makeHash(f.pw,PW_ITER),makeCodes()]).then(function(r){
+      AUTH.rec={v:1,user:u,pw:r[0],codes:r[1].stored,created:new Date().toISOString(),fails:0,until:0};
+      if(!authSave()){AUTH.rec=null;AUTH.busy=false;authMsg('This browser would not save the login. Check that it allows websites to store data, then try again.');return renderLock();}
+      AUTH.newCodes=r[1].plain; AUTH.view='codes'; AUTH.busy=false; AUTH.after='Login created. Download a backup soon so your login travels with your data.'; renderLock();
+    },function(){AUTH.busy=false;authMsg('The login could not be created. Try again.');renderLock();});
+  },
+  login:function(){
+    var f=formVals(); if(waitLeft()) return renderLock();
+    authMsg(''); authBusy(true);
+    var userOk=normUser(f.user)===normUser(AUTH.rec.user);
+    checkHash(f.pw,AUTH.rec.pw).then(function(ok){
+      AUTH.busy=false;
+      if(ok&&userOk){noteOk();authSave();unlockApp();}
+      else{noteFail();authMsg(waitLeft()?'Too many wrong attempts. Wait '+waitLeft()+' seconds, then try again.':'The username or password is not right.');renderLock();var pw=document.getElementById('au-pw');if(pw)pw.value='';}
+    },function(){AUTH.busy=false;authMsg('Could not check the password. Try again.');renderLock();});
+  },
+  forgot:function(){
+    var f=formVals(), p=pwProblem(f.pw,f.pw2), code=normCode(f.code); if(waitLeft()) return renderLock();
+    if(p){authMsg(p);return renderLock();}
+    if(!code){authMsg('Enter one of your recovery codes.');return renderLock();}
+    authMsg(''); authBusy(true);
+    var userOk=normUser(f.user)===normUser(AUTH.rec.user), unused=AUTH.rec.codes.filter(function(c){return !c.used;});
+    Promise.all(unused.map(function(c){return checkHash(code,c);})).then(function(res){
+      var hit=-1; res.forEach(function(r,i){if(r&&hit<0)hit=i;});
+      if(hit<0||!userOk){AUTH.busy=false;noteFail();authMsg(waitLeft()?'Too many wrong attempts. Wait '+waitLeft()+' seconds, then try again.':'That username and recovery code do not match. Check the spelling of the code.');return renderLock();}
+      return makeHash(f.pw,PW_ITER).then(function(h){
+        unused[hit].used=true; unused[hit].usedAt=new Date().toISOString(); AUTH.rec.pw=h; noteOk(); authSave(); AUTH.busy=false;
+        var left=codesLeft(); AUTH.after='Password changed. That recovery code is now used up. '+(left?plural(left,'code')+' left.':'No codes left, so make new ones in Settings.');
+        unlockApp();
+      });
+    }).catch(function(){AUTH.busy=false;authMsg('Could not reset the password. Try again.');renderLock();});
+  },
+  erase:function(){
+    if(val('au-erase').trim()!=='ERASE'){authMsg('Type ERASE in capital letters to confirm.');return renderLock();}
+    try{[LS_KEY,LS_UNDO,LS_UNSYNCED,LS_AUTH].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
+    setSessionUnlocked(false); AUTH.rec=null; state=emptyState(); ui.undo=null;
+    if(cloud.ref&&!cloud.fatal){state.rev=(cloud.savedRev||0)+1;cloud.dirty=true;pushCloud();}
+    AUTH.view='setup'; authMsg('This device has been erased. Set up a new login, then restore your data from a backup file.','info'); renderLock();
+  },
+  'change-pw':function(){
+    var cur=val('ap-cur'), p=pwProblem(val('ap-pw'),val('ap-pw2')), err=$('#ap-err');
+    if(p){err.innerHTML='<div class="msg bad">'+esc(p)+'</div>';return;}
+    err.innerHTML='<p class="muted small">Checking…</p>';
+    checkHash(cur,AUTH.rec.pw).then(function(ok){
+      if(!ok){err.innerHTML='<div class="msg bad">Your current password is not right.</div>';return;}
+      return makeHash(val('ap-pw'),PW_ITER).then(function(h){AUTH.rec.pw=h;authSave();setSessionUnlocked(true);closeModal();toast('Password changed');});
+    });
+  },
+  'change-user':function(){
+    var u=val('ap-user').trim(), err=$('#ap-err');
+    if(!u){err.innerHTML='<div class="msg bad">Enter a username.</div>';return;}
+    err.innerHTML='<p class="muted small">Checking…</p>';
+    checkHash(val('ap-cur'),AUTH.rec.pw).then(function(ok){
+      if(!ok){err.innerHTML='<div class="msg bad">Your password is not right.</div>';return;}
+      AUTH.rec.user=u;authSave();closeModal();toast('Username changed to '+u);
+    });
+  },
+  'new-codes':function(){
+    var err=$('#ap-err'); err.innerHTML='<p class="muted small">Checking…</p>';
+    checkHash(val('ap-cur'),AUTH.rec.pw).then(function(ok){
+      if(!ok){err.innerHTML='<div class="msg bad">Your password is not right.</div>';return;}
+      return makeCodes().then(function(r){AUTH.rec.codes=r.stored;authSave();showNewCodesModal(r.plain);});
+    });
+  }
+};
+function showNewCodesModal(codes){
+  AUTH.newCodes=codes; ui.modal={type:'codes'};
+  openModal(modalHead('New recovery codes','Your old codes no longer work. Save these new ones.')+codesBlock(codes)+
+    '<label class="chk" style="margin:10px 0"><input type="checkbox" id="au-saved" data-act="auth-saved"> I have saved these codes</label><div class="mf"><button class="btn primary" id="au-continue" data-act="auth-codes-done" disabled>Done</button></div>');
+}
+function accountModal(kind){
+  var t={'change-pw':'Change password','change-user':'Change username','new-codes':'Make new recovery codes'}[kind];
+  var body=kind==='change-pw'?pwField('ap-cur','Current password','current-password')+pwField('ap-pw','New password (at least 8 characters)','new-password',' minlength="8"')+pwField('ap-pw2','Confirm new password','new-password',' minlength="8"'):
+    kind==='change-user'?'<div class="f"><label for="ap-user">New username</label><input type="text" id="ap-user" autocomplete="username" autocapitalize="none" spellcheck="false" value="'+esc(AUTH.rec.user)+'" required></div>'+pwField('ap-cur','Password','current-password'):
+    '<p class="muted" style="margin-bottom:10px">This replaces all your recovery codes, including any you have not used.</p>'+pwField('ap-cur','Password','current-password');
+  ui.modal={type:'account'};
+  openModal(modalHead(t)+'<form data-auth="'+kind+'" autocomplete="on">'+body+showPwToggle()+'<div id="ap-err"></div><div class="mf">'+btn('Cancel','close-modal')+'<button class="btn primary" type="submit">'+esc(t)+'</button></div></form>');
+}
+function codesText(codes){
+  return 'Crew leave tracker – recovery codes\nMade: '+new Date().toLocaleString()+'\n\nEach code can be used once to reset your password.\nYour username is not in this file.\n\n'+codes.map(function(c,i){return (i+1)+'. '+c;}).join('\n')+'\n\nKeep this somewhere safe and separate from your backup files.\n';
+}
+function downloadCodes(){
+  var codes=AUTH.newCodes||[]; if(!codes.length) return;
+  var txt=codesText(codes), name='Pelorus-Leave-Tracker_recovery-codes_'+stamp()+'.txt';
+  var framed=(function(){try{return window.self!==window.top;}catch(e){return true;}})();
+  var fb=function(){ if(saveBlobFile(name,txt)&&!framed) toast('Codes downloaded: '+name); else toast('Download blocked here. Use Copy codes instead.'); };
+  var p=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);
+  p.then(function(dl){ if(!dl) return fb(); dl.save({filename:name,data:txt}).then(function(){toast('Codes saved as '+name);},function(e){if(e&&e.code==='declined')toast('Download cancelled.');else fb();}); },fb);
+}
+function copyCodes(){
+  var txt=codesText(AUTH.newCodes||[]);
+  var done=function(ok){toast(ok?'Codes copied':'Copy blocked here. Write them down or download them.');};
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function(){done(true);},function(){done(legacyCopy(txt));});
+  else done(legacyCopy(txt));
+}
+function legacyCopy(txt){try{var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=document.execCommand('copy');ta.remove();return ok;}catch(e){return false;}}
+function restoreAtSetup(file){
+  var fr=new FileReader();
+  fr.onload=function(){
+    var r=parseBackup(String(fr.result||''));
+    if(!r.ok){authMsg(r.error);return renderLock();}
+    replaceState(r.state);
+    if(r.auth){AUTH.rec=r.auth;AUTH.rec.fails=0;AUTH.rec.until=0;authSave();AUTH.view='login';AUTH.after='Backup restored.';authMsg('Backup restored ('+plural(r.meta.crew,'crew member')+', '+plural(r.meta.leaves,'leave record')+'). Sign in with the username and password from that device.','good');}
+    else {AUTH.view='setup';authMsg('Backup restored ('+plural(r.meta.crew,'crew member')+'). It had no login, so set one up now.','good');}
+    renderLock();
+  };
+  fr.onerror=function(){authMsg('The file could not be read. Try again.');renderLock();};
+  fr.readAsText(file);
+}
+H['auth-view']=function(el){AUTH.view=el.dataset.v;authMsg('');renderLock();};
+H['auth-showpw']=function(el){var box=el.closest('form')||document;box.querySelectorAll('input[autocomplete$="password"]').forEach(function(i){i.type=el.checked?'text':'password';});};
+H['auth-saved']=function(el){var b=document.getElementById('au-continue');if(b)b.disabled=!el.checked;};
+H['auth-continue']=function(){AUTH.newCodes=null;unlockApp();};
+H['auth-codes-done']=function(){AUTH.newCodes=null;closeModal();toast('New recovery codes saved');};
+H['auth-codes-dl']=downloadCodes;
+H['auth-codes-copy']=copyCodes;
+H['auth-lock']=function(){lockApp();};
+H['auth-open']=function(el){var k=el.dataset.k;closeModal();accountModal(k);};
+document.addEventListener('submit',function(e){
+  var f=e.target; if(!f||!f.dataset||!f.dataset.auth) return;
+  e.preventDefault(); if(AUTH.busy) return;
+  var fn=AUTH_SUBMIT[f.dataset.auth]; if(fn) fn();
+});
+
 /* ================= boot ================= */
 var lastDay=null;
 function boot(){
@@ -1559,12 +1815,13 @@ function boot(){
   rebuildAll();
   if(hasData(state)) ui.localOk=localSave();
   try{var h=(location.hash||'').slice(1); if(VIEWS[h]) ui.tab=h;}catch(e){}
+  authLoad(); AUTH.view=AUTH.rec?'login':'setup'; AUTH.locked=!(AUTH.rec&&sessionUnlocked());
   lastDay=todayN(); render(); initCloud();
   setInterval(function(){var d=todayN(); if(d!==lastDay){lastDay=d;rebuildAll();if(!ui.modal)render();else ui.needRender=true;}},60000);
 }
 if(typeof document!=='undefined'&&typeof window!=='undefined'&&document.getElementById('view')) boot();
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={pd:pd,iso:iso,addMonths:addMonths,snap:snap,nextBoundary:nextBoundary,buildPlan:buildPlan,planStartFor:planStartFor,nextInfo:nextInfo,balance:balance,leaveDays:leaveDays,findConflicts:findConflicts,normalize:normalize,
+  module.exports={AUTH:AUTH,authLoad:authLoad,makeHash:makeHash,checkHash:checkHash,makeCodes:makeCodes,normCode:normCode,codesLeft:codesLeft,validAuth:validAuth,pd:pd,iso:iso,addMonths:addMonths,snap:snap,nextBoundary:nextBoundary,buildPlan:buildPlan,planStartFor:planStartFor,nextInfo:nextInfo,balance:balance,leaveDays:leaveDays,findConflicts:findConflicts,normalize:normalize,
     setState:function(s){state=s;conflictCache={key:'',val:null};},getState:function(){return state;},parseBackup:parseBackup,membersOf:membersOf,leavesOfGroup:leavesOfGroup,chainCount:chainCount,followingLeaves:followingLeaves,groupById:groupById,rebuildAll:rebuildAll,emptyState:emptyState,makeBackup:makeBackup,getWarnings:getWarnings,monthStart:monthStart,todayN:todayN,VIEWS:VIEWS,ui:ui,render:render,commit:commit,openLeave:openLeave,leaveChanged:leaveChanged,leaveDraft:leaveDraft,openPlan:openPlan,planCompute:planCompute,openCrewForm:openCrewForm,openProfile:openProfile,openSettings:openSettings,H:H};
 }
 })();

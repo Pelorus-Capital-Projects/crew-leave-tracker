@@ -4,6 +4,12 @@ Plans and tracks crew leave on a yacht: rotation order for deck and interior, fl
 
 **Open the app:** https://pelorus-capital-projects.github.io/crew-leave-tracker/
 
+## Login
+
+The app opens behind a username and password, set up the first time you open it on each device (or brought across by restoring a backup file on the setup screen). You get 8 one-time recovery codes at setup: **Forgot password?** on the sign-in screen lets you set a new password with your username and one code. Make a fresh set any time under **Settings → New recovery codes**.
+
+Only salted hashes (PBKDF2-SHA256) of the password and codes are saved, never the words themselves. The login stops other people opening the app on your device; it does not encrypt the data stored in the browser or in backup files.
+
 ## Your data
 
 - Nothing you enter is sent anywhere. Crew and leave are saved in the browser you use, on that device only.
